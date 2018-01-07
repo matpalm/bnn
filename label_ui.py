@@ -6,42 +6,49 @@ from PIL import Image, ImageTk
 import os
 import sqlite3
 import random
+from label_db import LabelDB
 
-class BeePosDb():
-  def __init__(self, directory):
-    self.directory = directory
-    self.files = os.listdir(directory)
-    random.shuffle(self.files)    
-    print(len(self.files))
-
-  def next_img(self):
-    return self.directory + "/" + self.files.pop()
-  
 class LabelUI():
-  def __init__(self, db):
-    self.db = db
+  def __init__(self, img_dir):
+    
+    # what images to review?
+    self.img_dir = img_dir
+    self.files = os.listdir(img_dir)
+    random.shuffle(self.files)
+    print("files to review", self.files)
+
+    # label db
+    self.label_db = LabelDB()
+    self.label_db.create_if_required()
+
+    # TK UI
     root = tk.Tk()
     root.bind('n', self.display_next_image)
-    
+    root.bind('p', self.display_previous_image)
     self.canvas = tk.Canvas(root, cursor='tcross')
     self.canvas.config(width=768, height=1024)
-    self.canvas.bind('<Button-1>', self.add_bee)  # left mouse button
-    self.canvas.bind('<Button-3>', self.remove_closest_bee)  # right mouse button
+    self.canvas.bind('<Button-1>', self.add_bee_event)  # left mouse button
+    self.canvas.bind('<Button-3>', self.remove_closest_bee_event)  # right mouse button
     self.canvas.pack()
 
     # A lookup table from bee x,y to any rectangles that have been drawn
     # in case we want to remove one. the keys of this dict represent all
-    # the bee x,y
+    # the bee x,y in current image.
     self.x_y_to_boxes = {}  # { (x, y): canvas_id, ... }
-    
-    self.display_next_image()
+
+    # Main review loop
+    self.file_idx = 0
+    self.display_new_image()
     root.mainloop()
 
-  def add_bee(self, e):
-    rectangle_id = self.canvas.create_rectangle(e.x-2,e.y-2,e.x+2,e.y+2, fill='red')
-    self.x_y_to_boxes[(e.x, e.y)] = rectangle_id
+  def add_bee_event(self, e):
+    self.add_bee_at(e.x, e.y)
+
+  def add_bee_at(self, x, y):
+    rectangle_id = self.canvas.create_rectangle(x-2,y-2,x+2,y+2, fill='red')
+    self.x_y_to_boxes[(x, y)] = rectangle_id
     
-  def remove_closest_bee(self, e):
+  def remove_closest_bee_event(self, e):
     if len(self.x_y_to_boxes) == 0: return
     closest_point = closest_sqr_distance = None
     for x, y in self.x_y_to_boxes.keys():
@@ -52,16 +59,39 @@ class LabelUI():
     self.canvas.delete(self.x_y_to_boxes.pop(closest_point))
 
   def display_next_image(self, e=None):
+    self.file_idx += 1
+    if self.file_idx == len(self.files):
+      print("Can't move to image past last image.")
+      self.file_idx = len(self.files) - 1      
+    self.display_new_image()
+    
+  def display_previous_image(self, e=None):
+    self.file_idx -= 1
+    if self.file_idx < 0:
+      print("Can't move to image previous to first image.")
+      self.file_idx = 0    
+    self.display_new_image()
+    
+  def display_new_image(self):
     # Flush existing points.
     if len(self.x_y_to_boxes) > 0:
-      print("points!", self.img_name, self.x_y_to_boxes.keys())
+      self.label_db.set_labels(self.img_name, self.x_y_to_boxes.keys())
       self.x_y_to_boxes.clear()
-    # Choose and display next image.
-    self.img_name = db.next_img()
+    # Display image.
+    self.img_name = self.img_dir + "/" + self.files[self.file_idx]
     img = Image.open(self.img_name)
     self.tk_img = ImageTk.PhotoImage(img)
     self.canvas.create_image(0,0, image=self.tk_img, anchor=tk.NW)
-  
+    # Look up any existing bees in DB for this image.
+    existing_labels = self.label_db.get_labels(self.img_name)
+    for x, y in existing_labels:
+      self.add_bee_at(x, y)
+    
 
-db = BeePosDb("/home/mat/dev/bnn2/images/test3")
-LabelUI(db)
+import argparse
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument('--image-dir', type=str, required=True)
+#parser.add_argument('--output-dir', type=str, required=True)
+opts = parser.parse_args() 
+
+LabelUI(opts.image_dir)
