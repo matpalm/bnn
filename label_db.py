@@ -1,8 +1,8 @@
 import sqlite3
 
 class LabelDB(object):
-  def __init__(self):
-    self.conn = sqlite3.connect('label.db')
+  def __init__(self, check_same_thread=True):
+    self.conn = sqlite3.connect('label.db', check_same_thread=check_same_thread)
 
   def create_if_required(self):
     # called once to create db

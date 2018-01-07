@@ -7,12 +7,14 @@ import os
 import sqlite3
 import random
 from label_db import LabelDB
+import re
 
 class LabelUI():
   def __init__(self, img_dir):
     
     # what images to review?
-    self.img_dir = img_dir
+    # note: drop trailing / in dir name (if present)
+    self.img_dir = re.sub("/$", "", img_dir)  
     self.files = os.listdir(img_dir)
     random.shuffle(self.files)
     print("files to review", self.files)
@@ -79,6 +81,7 @@ class LabelUI():
       self.x_y_to_boxes.clear()
     # Display image.
     self.img_name = self.img_dir + "/" + self.files[self.file_idx]
+    print("SIM", self.img_name)
     img = Image.open(self.img_name)
     self.tk_img = ImageTk.PhotoImage(img)
     self.canvas.create_image(0,0, image=self.tk_img, anchor=tk.NW)
