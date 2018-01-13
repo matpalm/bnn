@@ -16,7 +16,7 @@ class LabelUI():
     # note: drop trailing / in dir name (if present)
     self.img_dir = re.sub("/$", "", img_dir)  
     self.files = os.listdir(img_dir)
-    random.shuffle(self.files)
+#    random.shuffle(self.files)
     print("files to review", self.files)
 
     # label db
@@ -61,6 +61,7 @@ class LabelUI():
     self.canvas.delete(self.x_y_to_boxes.pop(closest_point))
 
   def display_next_image(self, e=None):
+    self._flush_pending_x_y_to_boxes()
     self.file_idx += 1
     if self.file_idx == len(self.files):
       print("Can't move to image past last image.")
@@ -68,25 +69,28 @@ class LabelUI():
     self.display_new_image()
     
   def display_previous_image(self, e=None):
+    self._flush_pending_x_y_to_boxes()
     self.file_idx -= 1
     if self.file_idx < 0:
       print("Can't move to image previous to first image.")
       self.file_idx = 0    
     self.display_new_image()
+
+  def _flush_pending_x_y_to_boxes(self):
+    # Flush existing points.
+    img_name = self.files[self.file_idx]    
+    if len(self.x_y_to_boxes) > 0:
+      self.label_db.set_labels(img_name, self.x_y_to_boxes.keys())
+      self.x_y_to_boxes.clear()
     
   def display_new_image(self):
-    # Flush existing points.
-    if len(self.x_y_to_boxes) > 0:
-      self.label_db.set_labels(self.img_name, self.x_y_to_boxes.keys())
-      self.x_y_to_boxes.clear()
-    # Display image.
-    self.img_name = self.img_dir + "/" + self.files[self.file_idx]
-    print("SIM", self.img_name)
-    img = Image.open(self.img_name)
+    img_name = self.files[self.file_idx]
+    # Display image.    
+    img = Image.open(self.img_dir + "/" + img_name)
     self.tk_img = ImageTk.PhotoImage(img)
     self.canvas.create_image(0,0, image=self.tk_img, anchor=tk.NW)
     # Look up any existing bees in DB for this image.
-    existing_labels = self.label_db.get_labels(self.img_name)
+    existing_labels = self.label_db.get_labels(img_name)
     for x, y in existing_labels:
       self.add_bee_at(x, y)
     
