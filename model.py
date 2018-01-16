@@ -28,13 +28,14 @@ class Model(object):
 
     # consider sizes and growth in receptive field based on input of (16, 16, 3)
 
-    model = slim.conv2d(model, num_outputs=4, kernel_size=3, stride=2, scope='c1')
+    # 4, 8, 16
+    model = slim.conv2d(model, num_outputs=8, kernel_size=3, stride=2, scope='c1')
     dump_shape_and_product_of('e1', model)  # (8, 8, 4) 
     
-    model = slim.conv2d(model, num_outputs=8, kernel_size=3, stride=2, scope='c2')
+    model = slim.conv2d(model, num_outputs=16, kernel_size=3, stride=2, scope='c2')
     dump_shape_and_product_of('e2', model)  # (4, 4, 8)
     
-    model = slim.conv2d(model, num_outputs=16, kernel_size=3, stride=2, scope='c3')
+    model = slim.conv2d(model, num_outputs=32, kernel_size=3, stride=2, scope='c3')
     dump_shape_and_product_of('e3', model)  # (2, 2, 16)
 
     # record bottlenecked shape for resizing back
@@ -43,11 +44,11 @@ class Model(object):
     h, w = shape[0], shape[1]
     
     model = tf.image.resize_nearest_neighbor(model, [h*2, w*2])
-    model = slim.conv2d(model, num_outputs=8, kernel_size=4, scope='d1')
+    model = slim.conv2d(model, num_outputs=16, kernel_size=4, scope='d1')
     dump_shape_and_product_of('d1', model)  # (4, 4, 8)
 
     model = tf.image.resize_nearest_neighbor(model, [h*4, w*4])
-    model = slim.conv2d(model, num_outputs=4, kernel_size=4, scope='d2')
+    model = slim.conv2d(model, num_outputs=8, kernel_size=4, scope='d2')
     dump_shape_and_product_of('d2', model)  # (8, 8, 4)
 
     # at this point we are back to 1/2 res of original, which should be enough

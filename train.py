@@ -11,7 +11,8 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--image-dir', type=str, default="images/sample_originals")              
+parser.add_argument('--train-image-dir', type=str, default="images/sample_originals/train")
+parser.add_argument('--test-image-dir', type=str, default="images/sample_originals/test")
 #parser.add_argument('--train-data', type=str, default="train.jsons",
 #                    help="json file for training data")
 # parser.add_argument('--test-data', type=str, default="test.jsons",
@@ -20,7 +21,7 @@ parser.add_argument('--image-dir', type=str, default="images/sample_originals")
 #parser.add_argument('--img-shape', type=str, default='384')
 #parser.add_argument('--steps', type=int, default=10,
 #                    help='number of x100 training + test steps')
-#parser.add_argument('--num-filters', type=int, default=4)
+parser.add_argument('--patch-fraction', type=int, default=2)
 parser.add_argument('--batch-size', type=int, default=4)
 parser.add_argument('--learning-rate', type=float, default=0.01)
 opts = parser.parse_args()
@@ -28,17 +29,18 @@ print("opts %s" % opts, file=sys.stderr)
   
 np.set_printoptions(precision=2, threshold=10000, suppress=True, linewidth=10000)
 
-train_imgs, train_xys_bitmaps = data.img_xys_iterator(base_dir=opts.image_dir,
+# Build readers for train and test data.
+train_imgs, train_xys_bitmaps = data.img_xys_iterator(base_dir=opts.train_image_dir,
                                                       batch_size=opts.batch_size,
-                                                      patch_fraction=2)
-test_imgs, test_xys_bitmaps = data.img_xys_iterator(base_dir=opts.image_dir,   # TODO: different test set
+                                                      patch_fraction=opts.patch_fraction)
+test_imgs, test_xys_bitmaps = data.img_xys_iterator(base_dir=opts.test_image_dir,
                                                     batch_size=1,
                                                     patch_fraction=1)
-
 # TODO! divide by patch_fraction here instead of calculating explicitly.
-train_imgs = tf.reshape(train_imgs, (opts.batch_size, 512, 384, 3))  
+train_imgs = tf.reshape(train_imgs, (opts.batch_size, 1024/opts.patch_fraction, 768/opts.patch_fraction, 3))  
 test_imgs = tf.reshape(test_imgs, (1, 1024, 768, 3))
 
+# Build training and test model with same params.
 with tf.variable_scope("train_test_model") as scope:
   print("patch train model...")
   train_model = model.Model(train_imgs)
@@ -46,16 +48,11 @@ with tf.variable_scope("train_test_model") as scope:
   print("full res test model...")  
   test_model = model.Model(test_imgs)
 
-global_step = tf.train.create_global_step()
-
-print("xys_bitmaps", train_xys_bitmaps.shape)
-print("logits", train_model.logits.shape)
-
+# Setup loss and optimiser.
+# TODO: add dice loss
 loss = tf.reduce_mean(
     tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.to_float(train_xys_bitmaps),
                                             logits=train_model.logits))
-#loss = tf.reduce_mean(tf.nn.l2_loss(xys_bitmaps - model.output))
-
 optimiser = tf.train.AdamOptimizer(learning_rate=opts.learning_rate)
 train_op = optimiser.minimize(loss)
 
@@ -63,19 +60,28 @@ train_op = optimiser.minimize(loss)
 #                                         optimizer = optimiser,
 #                                         summarize_gradients = False)
 
+# Create session.
 sess_config = tf.ConfigProto()
 # sess_config.gpu_options.per_process_gpu_memory_fraction = 0.2
 sess = tf.Session(config=sess_config)
-
+global_step = tf.train.create_global_step()
 sess.run(tf.global_variables_initializer())
 
-for idx in range(200):
+# Setup summaries.
+#train_summaries = [
+#  tf.summary.scalar('xent_loss', xent_loss)
+#]
+#train_summaries_op = tf.summary.merge(train_summaries)
+#train_summaries_writer = tf.summary.FileWriter("tb/training", sess.graph)
+
+for idx in range(10000):
   print("---------------------------------", idx)
 
   # train a bit.
   for _ in range(100):
     _, l = sess.run([train_op, loss],
                     feed_dict={train_model.is_training: True})
+#  training_summaries_writer.add_summary(summary, summary_idx)
   print(l)
 
   # dump images from train and test.
@@ -107,7 +113,7 @@ for idx in range(200):
   print("bm", bm.shape, np.min(bm), np.mean(bm), np.max(bm))
 #  print("l", l.shape, np.min(l), np.mean(l), np.max(l))
   print("o", o.shape, np.min(o), np.mean(o), np.max(o))
-  debug_img(i, bm, o).save("train_%03d.png" % idx)
+  debug_img(i, bm, o).save("train_%05d.png" % idx)
   
   # dump an image from held out test image (full res)
   # TODO: move to tensorboard
@@ -118,7 +124,7 @@ for idx in range(200):
   print("bm", bm.shape, np.min(bm), np.mean(bm), np.max(bm))
 #  print("l", l.shape, np.min(l), np.mean(l), np.max(l))
   print("o", o.shape, np.min(o), np.mean(o), np.max(o))
-  debug_img(i, bm, o).save("test_%03d.png" % idx)
+  debug_img(i, bm, o).save("test_%05d.png" % idx)
 
 
 

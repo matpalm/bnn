@@ -75,7 +75,7 @@ def bitmap_to_pil_image(bitmap):
 if __name__ == "__main__":
   import argparse
   parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-  parser.add_argument('--image-dir', type=str, default="images/sample_originals")
+  parser.add_argument('--image-dir', type=str, default="images/sample_originals/train")
   parser.add_argument('--batch-size', type=int, default=16)
   parser.add_argument('--patch-fraction', type=int, default=1,
                       help="what fraction of image to use as patch. 1 => no patch")
