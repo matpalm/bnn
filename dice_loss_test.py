@@ -43,6 +43,8 @@ print dice_loss(y     = [1,1,0,1,0],
 
 
 def dice_loss_tf(y, y_hat, smoothing=0):
+  y = tf.reshape(y, (3, -1))
+  y_hat = tf.reshape(y_hat, (3, -1))
   intersection = y * y_hat
   intersection_rs = tf.reduce_sum(intersection, axis=1)
   nom = intersection_rs + smoothing
@@ -58,10 +60,10 @@ dl = dice_loss_tf(y, y_hat, smoothing=1e-4)
 
 with tf.Session() as s:
   print "TF dice loss"
-  print s.run(dl, feed_dict={y: [[1, 1, 0, 1, 0, 0],
-                                 [1, 1, 0, 1, 0, 0],
-                                 [1, 1, 0, 1, 0, 0]],
-                             y_hat: [[1, 1, 0, 1, 0, 0],
-                                     [0.9, 0.9, 0.01, 0.9, 0.1, 0.1],
-                                     [0, 0, 1, 0, 1, 1]]})
+  print s.run(dl, feed_dict={y: [[[1, 1, 0], [1, 0, 0]],
+                                 [[1, 1, 0], [1, 0, 0]],
+                                 [[1, 1, 0], [1, 0, 0]]],
+                             y_hat: [[[1, 1, 0], [1, 0, 0]],
+                                     [[0.9, 0.9, 0.01], [0.9, 0.1, 0.1]],
+                                     [[0, 0, 1], [0, 1, 1]]]})
 

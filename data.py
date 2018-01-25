@@ -14,7 +14,7 @@ def img_xys_iterator(base_dir, batch_size, patch_fraction):
                                                    for_training=False,
                                                    patch_fraction=patch_fraction),
                                            output_types=(tf.uint8, tf.uint8))
-  dataset = dataset.batch(batch_size).prefetch(4)
+  dataset = dataset.batch(batch_size).prefetch(8)
   return dataset.make_one_shot_iterator().get_next()
 
 def _decode_img_and_lookup_xys(base_dir, for_training, patch_fraction):

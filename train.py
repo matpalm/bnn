@@ -49,12 +49,33 @@ with tf.variable_scope("train_test_model") as scope:
   test_model = model.Model(test_imgs)
 
 # Setup loss and optimiser.
-# TODO: add dice loss
-loss = tf.reduce_mean(
-    tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.to_float(train_xys_bitmaps),
-                                            logits=train_model.logits))
+labels = tf.to_float(train_xys_bitmaps)
+
+xent_loss = tf.reduce_mean(
+  tf.nn.sigmoid_cross_entropy_with_logits(labels=labels,
+                                          logits=train_model.logits))
+
+def calc_dice_loss(y, y_hat, smoothing=0):
+  y = tf.reshape(y, (opts.batch_size, -1))
+  y_hat = tf.reshape(y_hat, (opts.batch_size, -1))
+  intersection = y * y_hat
+  intersection_rs = tf.reduce_sum(intersection, axis=1)
+  nom = intersection_rs + smoothing
+  denom = tf.reduce_sum(y, axis=1) + tf.reduce_sum(y_hat, axis=1) + smoothing
+  score = 2.0 * (nom / denom)
+  loss = 1.0 - score
+#  loss = tf.Print(loss, [intersection, intersection_rs, nom, denom], first_n=100, summarize=10000)
+  return loss
+
+dice_loss = tf.reduce_mean(calc_dice_loss(labels,
+                                          tf.sigmoid(train_model.logits),
+                                          smoothing=1e-2))
+
 optimiser = tf.train.AdamOptimizer(learning_rate=opts.learning_rate)
-train_op = optimiser.minimize(loss)
+xent_weight = 1.000
+dice_weight = 0.000
+train_op = optimiser.minimize(xent_weight * xent_loss + dice_weight * dice_loss)
+
 
 #train_op = slim.learning.create_train_op(total_loss = loss, # + regularisation_loss,
 #                                         optimizer = optimiser,
@@ -68,21 +89,26 @@ global_step = tf.train.create_global_step()
 sess.run(tf.global_variables_initializer())
 
 # Setup summaries.
-#train_summaries = [
-#  tf.summary.scalar('xent_loss', xent_loss)
-#]
-#train_summaries_op = tf.summary.merge(train_summaries)
-#train_summaries_writer = tf.summary.FileWriter("tb/training", sess.graph)
+train_summaries = [
+  tf.summary.scalar('xent_loss', xent_loss),
+  tf.summary.scalar('dice_loss', dice_loss),
+]
+train_summaries_op = tf.summary.merge(train_summaries)
+train_summaries_writer = tf.summary.FileWriter("tb/training", sess.graph)
 
 for idx in range(10000):
   print("---------------------------------", idx)
 
   # train a bit.
-  for _ in range(100):
-    _, l = sess.run([train_op, loss],
-                    feed_dict={train_model.is_training: True})
-#  training_summaries_writer.add_summary(summary, summary_idx)
-  print(l)
+  for _ in range(20):
+    _, xl, dl = sess.run([train_op, xent_loss, dice_loss],
+                         feed_dict={train_model.is_training: True})
+    print(xl, dl)
+
+  # one additional step of training for summaries
+  _, summaries, step = sess.run([train_op, train_summaries_op, global_step],
+                                feed_dict={train_model.is_training: True})
+  train_summaries_writer.add_summary(summaries, idx)
 
   # dump images from train and test.
   # TODO: move to tensorboard
@@ -108,22 +134,11 @@ for idx in range(10000):
   # recall: RGB twice size of labelled and predicted.  
   i, bm, o = sess.run([train_imgs, train_xys_bitmaps, train_model.output],
                       feed_dict={train_model.is_training: False})
-  print("train")
-  print("i", i.shape, np.min(i), np.mean(i), np.max(i))
-  print("bm", bm.shape, np.min(bm), np.mean(bm), np.max(bm))
-#  print("l", l.shape, np.min(l), np.mean(l), np.max(l))
-  print("o", o.shape, np.min(o), np.mean(o), np.max(o))
   debug_img(i, bm, o).save("train_%05d.png" % idx)
   
   # dump an image from held out test image (full res)
-  # TODO: move to tensorboard
   i, bm, o = sess.run([test_imgs, test_xys_bitmaps, test_model.output],
                       feed_dict={test_model.is_training: False})
-  print("test")
-  print("i", i.shape, np.min(i), np.mean(i), np.max(i))
-  print("bm", bm.shape, np.min(bm), np.mean(bm), np.max(bm))
-#  print("l", l.shape, np.min(l), np.mean(l), np.max(l))
-  print("o", o.shape, np.min(o), np.mean(o), np.max(o))
   debug_img(i, bm, o).save("test_%05d.png" % idx)
 
 
