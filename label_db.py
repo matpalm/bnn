@@ -21,12 +21,16 @@ class LabelDB(object):
         # assume table already exists? clumsy...
         pass
 
-  def get_labels(self, img):
+  def has_labels(self, img):
     id = self._id_for_img(img)
-    if id is None: return []
+    return id is not None
+
+  def get_labels(self, img):
+    if not self.has_labels(img):
+      return []
     c = self.conn.cursor()
-    c.execute("""select l.x, l.y                                                                                                 
-                 from labels l join imgs i on l.img_id = i.id                                                                                   
+    c.execute("""select l.x, l.y
+                 from labels l join imgs i on l.img_id = i.id
                  where i.filename=?""", (img,))
     return c.fetchall()
 

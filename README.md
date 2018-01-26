@@ -7,9 +7,14 @@ unet style image translation from image of hive entrance to bitmap of location o
 * left click to tag bee
 * right click to untag closest bee
 * 'n' for next image
+* 'N' for next unlabelled image
 * 'p' for previous image
 
 ```
+# sample some more for labelling
+ls images/2017_11_12/|shuf|head|perl -ne'chomp;print "cp images/2017_11_12/$_ images/sample_originals/train/\n"'|sh
+
+# label
 ./label_ui.py --image-dir images/sample_originals/train/
 ```
 

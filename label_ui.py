@@ -26,6 +26,7 @@ class LabelUI():
     # TK UI
     root = tk.Tk()
     root.bind('n', self.display_next_image)
+    root.bind('N', self.display_next_unlabelled_image)
     root.bind('p', self.display_previous_image)
     self.canvas = tk.Canvas(root, cursor='tcross')
     self.canvas.config(width=768, height=1024)
@@ -66,6 +67,18 @@ class LabelUI():
     if self.file_idx == len(self.files):
       print("Can't move to image past last image.")
       self.file_idx = len(self.files) - 1      
+    self.display_new_image()
+
+  def display_next_unlabelled_image(self, e=None):
+    self._flush_pending_x_y_to_boxes()
+    while True:
+      self.file_idx += 1
+      if self.file_idx == len(self.files):
+        print("Can't move to image past last image.")
+        self.file_idx = len(self.files) - 1
+        break
+      if not self.label_db.has_labels(self.files[self.file_idx]):
+        break
     self.display_new_image()
     
   def display_previous_image(self, e=None):
