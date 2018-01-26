@@ -9,6 +9,8 @@ import numpy as np
 from label_db import LabelDB
 
 def img_xys_iterator(base_dir, batch_size, patch_fraction):
+  # TODO: switch to pyfunc for parallel maps
+  # see https://stackoverflow.com/questions/47086599/parallelising-tf-data-dataset-from-generator/47884927#47884927
   dataset = tf.data.Dataset.from_generator(partial(_decode_img_and_lookup_xys,
                                                    base_dir,
                                                    for_training=False,
@@ -61,6 +63,7 @@ def xys_to_bitmap(xys, height, width, rescale=1.0):
     bitmap[int(y*rescale), int(x*rescale), 0] = 1.0  # recall images are (height, width)
   return bitmap
 
+# TODO: move to util.py
 def bitmap_to_pil_image(bitmap):
   h, w, c = bitmap.shape
   assert c == 1
