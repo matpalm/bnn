@@ -72,10 +72,9 @@ class Model(object):
     # finally mapping to binary
     self.logits = slim.conv2d(model, num_outputs=1, kernel_size=3, scope='d4',
                               activation_fn=None)
-    dump_shape_and_product_of('logits', self.logits)  # (16, 16, 1)
+    dump_shape_and_product_of('logits', self.logits)
 
     self.output = tf.nn.sigmoid(self.logits)
-    # TODO what should be applied here as activation?    
 
     
     
