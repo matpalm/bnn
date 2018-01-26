@@ -48,3 +48,4 @@ logits     (16, 256, 192, 1)    #49152
 * get dice loss working; should be useful to use? 
 * have been randomly sampling images to label, but we ~10,000 over a day. would it make sense to feed in labelled image with the image before/after as a way of grounding changes in background? (have found myself flipping forward/back as a way of discriminating...)
 
+![rgb_labels_predictions.png](rgb_labels_predictions.png)
