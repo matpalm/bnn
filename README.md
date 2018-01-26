@@ -35,5 +35,11 @@ d3+e1      (16, 256, 192, 16)   #786432
 logits     (16, 256, 192, 1)    #49152
 ```
 
+## TODOs
+
+* label more than 30 images, crazy that it works so well with such a small number o_O
+* hyperparam selection; (specifically how small a model we can get away with)
+* parallelise input pipeline (with something better than a pyfunc hack??!?)
+* get dice loss working; should be useful to use? 
 
 
