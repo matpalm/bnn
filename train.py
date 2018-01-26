@@ -85,13 +85,17 @@ summaries_op = tf.summary.merge(summaries)
 train_summaries_writer = tf.summary.FileWriter("tb/%s/training" % opts.run, sess.graph)
 test_summaries_writer = tf.summary.FileWriter("tb/%s/test" % opts.run, sess.graph)
 
+import time
+
 for idx in range(10000):
   
   # train a bit.
-  for _ in range(100):
+  start_time = time.time()
+  for _ in range(10):
     _, xl, dl = sess.run([train_op, xent_loss, dice_loss],
                          feed_dict={train_model.is_training: True})
-  print("idx %d\txent_loss %f\tdice_loss %f" % (idx, xl, dl))
+  training_time = time.time() - start_time
+  print("idx %d\txent_loss %f\tdice_loss %f\ttime %f" % (idx, xl, dl, training_time))
     
   # train / test summaries
   # includes loss summaries as well as a hand rolled debug image
