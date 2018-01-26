@@ -14,14 +14,6 @@ import util as u
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--train-image-dir', type=str, default="images/sample_originals/train")
 parser.add_argument('--test-image-dir', type=str, default="images/sample_originals/test")
-#parser.add_argument('--train-data', type=str, default="train.jsons",
-#                    help="json file for training data")
-# parser.add_argument('--test-data', type=str, default="test.jsons",
-#                     help="json file for training data")
-#parser.add_argument('--run', type=str, required=True)
-#parser.add_argument('--img-shape', type=str, default='384')
-#parser.add_argument('--steps', type=int, default=10,
-#                    help='number of x100 training + test steps')
 parser.add_argument('--patch-fraction', type=int, default=2)
 parser.add_argument('--batch-size', type=int, default=4)
 parser.add_argument('--learning-rate', type=float, default=0.01)
@@ -34,11 +26,12 @@ np.set_printoptions(precision=2, threshold=10000, suppress=True, linewidth=10000
 # Build readers for train and test data.
 train_imgs, train_xys_bitmaps = data.img_xys_iterator(base_dir=opts.train_image_dir,
                                                       batch_size=opts.batch_size,
-                                                      patch_fraction=opts.patch_fraction)
+                                                      patch_fraction=opts.patch_fraction,
+                                                      distort=True)
 test_imgs, test_xys_bitmaps = data.img_xys_iterator(base_dir=opts.test_image_dir,
                                                     batch_size=1,
-                                                    patch_fraction=1)
-# TODO! divide by patch_fraction here instead of calculating explicitly.
+                                                    patch_fraction=1,
+                                                    distort=False)
 train_imgs = tf.reshape(train_imgs, (opts.batch_size, 1024/opts.patch_fraction, 768/opts.patch_fraction, 3))  
 test_imgs = tf.reshape(test_imgs, (1, 1024, 768, 3))
 

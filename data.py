@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageEnhance
 from functools import partial
 import json
 import os
@@ -8,19 +8,20 @@ import tensorflow as tf
 import numpy as np
 from label_db import LabelDB
 
-def img_xys_iterator(base_dir, batch_size, patch_fraction):
+def img_xys_iterator(base_dir, batch_size, patch_fraction, distort):
   # TODO: switch to pyfunc for parallel maps
   # see https://stackoverflow.com/questions/47086599/parallelising-tf-data-dataset-from-generator/47884927#47884927
   dataset = tf.data.Dataset.from_generator(partial(_decode_img_and_lookup_xys,
                                                    base_dir,
-                                                   for_training=False,
+                                                   distort=distort,
                                                    patch_fraction=patch_fraction),
                                            output_types=(tf.uint8, tf.uint8))
   dataset = dataset.batch(batch_size).prefetch(8)
   return dataset.make_one_shot_iterator().get_next()
 
-def _decode_img_and_lookup_xys(base_dir, for_training, patch_fraction):
+def _decode_img_and_lookup_xys(base_dir, distort, patch_fraction):
   label_db = LabelDB(check_same_thread=False)
+
   while True:
     for fname in os.listdir(base_dir):
 
@@ -28,8 +29,14 @@ def _decode_img_and_lookup_xys(base_dir, for_training, patch_fraction):
       img = Image.open("%s/%s" % (base_dir, fname))
       w, h = img.size
       
-      # TODO: distort here
-  
+      if distort:
+        # distort colours & sharpness
+        # TODO: expose ranges for hyperparam sweeping
+        img = ImageEnhance.Contrast(img).enhance(random.uniform(0.75, 1.25))
+        img = ImageEnhance.Brightness(img).enhance(random.uniform(0.75, 1.25))
+        img = ImageEnhance.Sharpness(img).enhance(random.uniform(0.75, 1.25))  # bother ???
+        # TODO: distort w.r.t rotation & scaling
+      
       # lookup xys
       xys = label_db.get_labels(fname)
 
@@ -82,6 +89,7 @@ if __name__ == "__main__":
   parser.add_argument('--batch-size', type=int, default=16)
   parser.add_argument('--patch-fraction', type=int, default=1,
                       help="what fraction of image to use as patch. 1 => no patch")
+  parser.add_argument('--distort', action='store_true')
   opts = parser.parse_args()
   
   from PIL import Image, ImageDraw
@@ -90,7 +98,8 @@ if __name__ == "__main__":
   
   imgs, xys = img_xys_iterator(base_dir=opts.image_dir,
                                batch_size=opts.batch_size,
-                               patch_fraction=opts.patch_fraction)
+                               patch_fraction=opts.patch_fraction,
+                               distort=opts.distort)
   
   img_batch, xys_batch = sess.run([imgs, xys])
   for i, (img, xys) in enumerate(zip(img_batch, xys_batch)):
