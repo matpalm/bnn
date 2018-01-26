@@ -26,16 +26,18 @@ class Model(object):
     model = (model * 2) - 1
     dump_shape_and_product_of('input', model)
 
-    e1 = slim.conv2d(model, num_outputs=8, kernel_size=3, stride=2, scope='e1')
+    base_filter_size = 8
+    
+    e1 = slim.conv2d(model, num_outputs=base_filter_size, kernel_size=3, stride=2, scope='e1')
     dump_shape_and_product_of('e1', e1)
     
-    e2 = slim.conv2d(e1, num_outputs=16, kernel_size=3, stride=2, scope='e2')
+    e2 = slim.conv2d(e1, num_outputs=2*base_filter_size, kernel_size=3, stride=2, scope='e2')
     dump_shape_and_product_of('e2', e2)
     
-    e3 = slim.conv2d(e2, num_outputs=32, kernel_size=3, stride=2, scope='e3')
+    e3 = slim.conv2d(e2, num_outputs=4*base_filter_size, kernel_size=3, stride=2, scope='e3')
     dump_shape_and_product_of('e3', e3)
     
-    e4 = slim.conv2d(e3, num_outputs=32, kernel_size=3, stride=2, scope='e4')
+    e4 = slim.conv2d(e3, num_outputs=8*base_filter_size, kernel_size=3, stride=2, scope='e4')
     dump_shape_and_product_of('e4', e4)
 
     # record bottlenecked shape for resizing back
@@ -44,7 +46,7 @@ class Model(object):
     h, w = shape[0], shape[1]
     
     model = tf.image.resize_nearest_neighbor(e4, [h*2, w*2])
-    model = slim.conv2d(model, num_outputs=32, kernel_size=4, scope='d1')
+    model = slim.conv2d(model, num_outputs=4*base_filter_size, kernel_size=3, scope='d1')
     dump_shape_and_product_of('d1', model)
 
     if use_skip_connections:
@@ -52,7 +54,7 @@ class Model(object):
       dump_shape_and_product_of('d1+e3', model)
 
     model = tf.image.resize_nearest_neighbor(model, [h*4, w*4])
-    model = slim.conv2d(model, num_outputs=16, kernel_size=4, scope='d2')
+    model = slim.conv2d(model, num_outputs=2*base_filter_size, kernel_size=3, scope='d2')
     dump_shape_and_product_of('d2', model)
 
     if use_skip_connections:
@@ -60,7 +62,7 @@ class Model(object):
       dump_shape_and_product_of('d2+e2', model)
 
     model = tf.image.resize_nearest_neighbor(model, [h*8, w*8])
-    model = slim.conv2d(model, num_outputs=8, kernel_size=4, scope='d3')
+    model = slim.conv2d(model, num_outputs=base_filter_size, kernel_size=3, scope='d3')
     dump_shape_and_product_of('d3', model)
 
     if use_skip_connections:
