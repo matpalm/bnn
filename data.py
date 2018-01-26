@@ -26,9 +26,6 @@ def img_xys_iterator(base_dir, batch_size, patch_fraction, distort):
     label_bitmaps.append(xys_to_bitmap(xys, h, w, rescale=0.5))
 
   def random_crop(rgb, bitmap):
-    # no cropping for no patch
-    if patch_fraction == 1:
-      return rgb, bitmap
     # we want to use the same crop for both RGB input and bitmap label
     # but the bitmap is half res
     pw, ph = w / patch_fraction, h / patch_fraction
@@ -49,7 +46,8 @@ def img_xys_iterator(base_dir, batch_size, patch_fraction, distort):
   dataset = tf.data.Dataset.from_tensor_slices((np.stack(rgb_images),
                                                 np.stack(label_bitmaps)))
   dataset = dataset.cache().shuffle(50).repeat()
-  dataset = dataset.map(random_crop, num_parallel_calls=8)
+  if patch_fraction > 1:
+    dataset = dataset.map(random_crop, num_parallel_calls=8)
   if distort:
     dataset = dataset.map(distort_rgb, num_parallel_calls=8)
   return (dataset.

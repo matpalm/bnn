@@ -38,6 +38,7 @@ print(test_xys_bitmaps.get_shape())
 #test_imgs = tf.reshape(test_imgs, (1, 1024, 768, 3))
 
 # Build training and test model with same params.
+# TODO: opts for skip and base filters
 with tf.variable_scope("train_test_model") as scope:
   print("patch train model...")
   train_model = model.Model(train_imgs)
@@ -62,7 +63,7 @@ dice_loss = tf.reduce_mean(u.dice_loss(labels,
 optimiser = tf.train.AdamOptimizer(learning_rate=opts.learning_rate)
 
 xent_weight = 1.000
-dice_weight = 0.000  # TODO: hmm. no success with this yet...
+dice_weight = 0.000  # TODO: hmm. no success with this yet...  (1e-4 would put it ~= xent)
 total_loss = xent_weight * xent_loss + dice_weight * dice_loss
 
 # TODO: include this
@@ -93,7 +94,7 @@ for idx in range(10000):
   
   # train a bit.
   start_time = time.time()
-  for _ in range(10):
+  for _ in range(100):
     _, xl, dl = sess.run([train_op, xent_loss, dice_loss],
                          feed_dict={train_model.is_training: True})
   training_time = time.time() - start_time
@@ -115,3 +116,6 @@ for idx in range(10000):
   debug_img_summary = u.PILImageToTFSummary(u.debug_img(i, bm, o))
   test_summaries_writer.add_summary(loss_summaries, step)
   test_summaries_writer.add_summary(debug_img_summary, step)
+
+  # save checkpoint
+  train_model.save(sess, "ckpts/%s" % opts.run)

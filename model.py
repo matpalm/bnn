@@ -4,6 +4,7 @@ import datetime
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 import sys
+import os
 
 def dump_shape_and_product_of(tag, t):
   shape_product = 1
@@ -13,7 +14,7 @@ def dump_shape_and_product_of(tag, t):
 
 class Model(object):
 
-  def __init__(self, imgs, use_skip_connections=True):
+  def __init__(self, imgs, use_skip_connections=True, base_filter_size=16):
     self.is_training = tf.placeholder(tf.bool, name="is_training")
     self.imgs = imgs
 
@@ -25,8 +26,6 @@ class Model(object):
     # TODO: this is habit; do we need it?
     model = (model * 2) - 1
     dump_shape_and_product_of('input', model)
-
-    base_filter_size = 8
     
     e1 = slim.conv2d(model, num_outputs=base_filter_size, kernel_size=3, stride=2, scope='e1')
     dump_shape_and_product_of('e1', e1)
@@ -78,5 +77,19 @@ class Model(object):
 
     self.output = tf.nn.sigmoid(self.logits)
 
-    
-    
+    self.saver = tf.train.Saver(max_to_keep=100,
+                                keep_checkpoint_every_n_hours=1)
+
+  def save(self, sess, ckpt_dir):
+    if not os.path.exists(ckpt_dir):
+      os.makedirs(ckpt_dir)
+    dts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    new_ckpt = "%s/%s" % (ckpt_dir, dts)
+    self.saver.save(sess, new_ckpt)
+
+  def restore(self, sess, ckpt_dir, ckpt_file=None):
+    if ckpt_file is None:
+      ckpt_file = tf.train.latest_checkpoint(ckpt_dir)
+    else:
+      ckpt_file = "%s/%s" % (ckpt_dir, ckpt_file)
+    self.saver.restore(sess, ckpt_file)
