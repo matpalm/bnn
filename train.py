@@ -15,8 +15,8 @@ parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFo
 parser.add_argument('--train-image-dir', type=str, default="images/sample_originals/train")
 parser.add_argument('--test-image-dir', type=str, default="images/sample_originals/test")
 parser.add_argument('--patch-fraction', type=int, default=2)
-parser.add_argument('--batch-size', type=int, default=4)
-parser.add_argument('--learning-rate', type=float, default=0.01)
+parser.add_argument('--batch-size', type=int, default=32)
+parser.add_argument('--learning-rate', type=float, default=0.001)
 parser.add_argument('--run', type=str, required=True, help="run dir for tb")
 opts = parser.parse_args()
 print("opts %s" % opts, file=sys.stderr)
@@ -32,8 +32,10 @@ test_imgs, test_xys_bitmaps = data.img_xys_iterator(base_dir=opts.test_image_dir
                                                     batch_size=1,
                                                     patch_fraction=1,
                                                     distort=False)
-train_imgs = tf.reshape(train_imgs, (opts.batch_size, 1024/opts.patch_fraction, 768/opts.patch_fraction, 3))  
-test_imgs = tf.reshape(test_imgs, (1, 1024, 768, 3))
+print(test_imgs.get_shape())
+print(test_xys_bitmaps.get_shape())
+#train_imgs = tf.reshape(train_imgs, (opts.batch_size, 1024/opts.patch_fraction, 768/opts.patch_fraction, 3))  
+#test_imgs = tf.reshape(test_imgs, (1, 1024, 768, 3))
 
 # Build training and test model with same params.
 with tf.variable_scope("train_test_model") as scope:
@@ -109,9 +111,3 @@ for idx in range(10000):
   debug_img_summary = u.PILImageToTFSummary(u.debug_img(i, bm, o))
   test_summaries_writer.add_summary(loss_summaries, step)
   test_summaries_writer.add_summary(debug_img_summary, step)
-
-
-
-
-
-
