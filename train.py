@@ -27,11 +27,11 @@ np.set_printoptions(precision=2, threshold=10000, suppress=True, linewidth=10000
 train_imgs, train_xys_bitmaps = data.img_xys_iterator(base_dir=opts.train_image_dir,
                                                       batch_size=opts.batch_size,
                                                       patch_fraction=opts.patch_fraction,
-                                                      distort=True)
+                                                      distort=True, repeat=True)
 test_imgs, test_xys_bitmaps = data.img_xys_iterator(base_dir=opts.test_image_dir,
                                                     batch_size=1,
                                                     patch_fraction=1,
-                                                    distort=False)
+                                                    distort=False, repeat=True)
 print(test_imgs.get_shape())
 print(test_xys_bitmaps.get_shape())
 #train_imgs = tf.reshape(train_imgs, (opts.batch_size, 1024/opts.patch_fraction, 768/opts.patch_fraction, 3))  

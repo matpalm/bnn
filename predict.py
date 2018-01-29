@@ -32,7 +32,6 @@ model.restore(sess, "ckpts/%s" % opts.run)
 db = LabelDB(label_db_file=opts.label_db)
 db.create_if_required()
 
-idx = 0
 for idx in itertools.count():
   try:
     img, fn, logits, o = sess.run([test_imgs, test_filenames,

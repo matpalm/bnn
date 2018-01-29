@@ -81,11 +81,8 @@ class LabelDB(object):
 
     
 if __name__ == "__main__":
-  db = LabelDB(label_db_file='label.staging.db')
+  db = LabelDB(label_db_file='label.db')
   db.create_if_required()
-#  print(db.get_labels("foo.png"))
-#  db.set_labels("foo.png", [(3,1), (4,1), (5,9)])
-#  print(db.get_labels("foo.png"))
-  print(db.imgs())
+  print "\n".join(db.imgs())
    
                                   

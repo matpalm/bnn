@@ -11,7 +11,7 @@ import random
 import tensorflow as tf
 import util as u
 
-def img_xys_iterator(base_dir, batch_size, patch_fraction, distort):
+def img_xys_iterator(base_dir, batch_size, patch_fraction, distort, repeat):
   # return dataset of (image, xys_bitmap) for training
 
   # load all images
@@ -49,7 +49,8 @@ def img_xys_iterator(base_dir, batch_size, patch_fraction, distort):
 
   dataset = tf.data.Dataset.from_tensor_slices((np.stack(rgb_images),
                                                 np.stack(label_bitmaps)))
-  dataset = dataset.cache().shuffle(50).repeat()
+  if repeat:
+    dataset = dataset.cache().shuffle(50).repeat()
   if patch_fraction > 1:
     dataset = dataset.map(random_crop, num_parallel_calls=8)
   if distort:
@@ -101,7 +102,8 @@ if __name__ == "__main__":
   imgs, xyss = img_xys_iterator(base_dir=opts.image_dir,
                                 batch_size=opts.batch_size,
                                 patch_fraction=opts.patch_fraction,
-                                distort=opts.distort)
+                                distort=opts.distort,
+                                repeat=True)
 
   for b in range(3):
     print(">batch", b)
