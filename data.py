@@ -1,15 +1,19 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
+from __future__ import print_function
 
 from PIL import Image, ImageDraw, ImageEnhance
 from functools import partial
+from label_db import LabelDB
 import json
+import numpy as np
 import os
 import random
 import tensorflow as tf
-import numpy as np
-from label_db import LabelDB
+import util as u
 
 def img_xys_iterator(base_dir, batch_size, patch_fraction, distort):
+  # return dataset of (image, xys_bitmap) for training
+
   # load all images
   label_db = LabelDB(check_same_thread=False)
   rgb_images = []  
@@ -55,26 +59,31 @@ def img_xys_iterator(base_dir, batch_size, patch_fraction, distort):
           prefetch(1).
           make_one_shot_iterator().
           get_next())
-      
+
+def img_filename_iterator(base_dir):
+  # return dataset of (image, filename) for inference
+
+  # load all images
+  rgb_images = []
+  img_names = []
+  for fname in os.listdir(base_dir):
+    # load image
+    img = Image.open("%s/%s" % (base_dir, fname))
+    # keep track for later stacking
+    rgb_images.append(np.array(img))
+    img_names.append(fname)
+
+  dataset = tf.data.Dataset.from_tensor_slices((np.stack(rgb_images),
+                                                np.stack(img_names)))
+  return dataset.batch(1).prefetch(1).make_one_shot_iterator().get_next()
+
 def xys_to_bitmap(xys, height, width, rescale=1.0):
   # note: include trailing 1 dim to easier match model output
   bitmap = np.zeros((int(height*rescale), int(width*rescale), 1), dtype=np.float32)
   for x, y in xys:
     bitmap[int(y*rescale), int(x*rescale), 0] = 1.0  # recall images are (height, width)
   return bitmap
-
-# TODO: move to util.py
-def bitmap_to_pil_image(bitmap):
-  h, w, c = bitmap.shape
-  assert c == 1
-  rgb_array = np.zeros((h, w, 3), dtype=np.uint8)
-  single_channel = bitmap[:,:,0] * 255
-  rgb_array[:,:,0] = single_channel
-  rgb_array[:,:,1] = single_channel
-  rgb_array[:,:,2] = single_channel
-  return Image.fromarray(rgb_array)
   
-
 if __name__ == "__main__":
   import argparse
   parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -99,24 +108,5 @@ if __name__ == "__main__":
     img_batch, xys_batch = sess.run([imgs, xyss])
     for i, (img, xys) in enumerate(zip(img_batch, xys_batch)):
       print(">element", i)
-      h, w, _ = img.shape    
-      canvas = Image.new('RGB', (w*2, h), (50, 50, 50))
-      # paste RGB on left hand side
-      img = Image.fromarray(img)
-      canvas.paste(img, (0, 0))
-      # paste bitmap version of labels on right hand side
-      # black with white dots at labels
-      img = bitmap_to_pil_image(xys)
-      img = img.resize((w, h))
-      canvas.paste(img, (w, 0))
-      # draw on a blue border (and blue middle divider) to make it
-      # easier to see relative positions.
-      draw = ImageDraw.Draw(canvas)
-      draw.polygon([0,0,w*2-1,0,w*2-1,h-1,0,h-1], outline='blue')
-      draw.line([w,0,w,h], fill='blue')
-      # save
-      canvas.save("test_%03d_%03d.png" % (b, i))
+      u.side_by_side(rgb=img, bitmap=xys).save("test_%03d_%03d.png" % (b, i))
     
-    
-
-

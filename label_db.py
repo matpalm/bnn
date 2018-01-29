@@ -1,8 +1,9 @@
 import sqlite3
+import json
 
 class LabelDB(object):
-  def __init__(self, check_same_thread=True):
-    self.conn = sqlite3.connect('label.db', check_same_thread=check_same_thread)
+  def __init__(self, label_db_file='label.db', check_same_thread=True):
+    self.conn = sqlite3.connect(label_db_file, check_same_thread=check_same_thread)
 
   def create_if_required(self):
     # called once to create db
@@ -34,13 +35,13 @@ class LabelDB(object):
                  where i.filename=?""", (img,))
     return c.fetchall()
 
-  def set_labels(self, img, labels):
+  def set_labels(self, img, labels, flip=False):
     img_id = self._id_for_img(img)
     if img_id is None:
       img_id = self._create_row_for_img(img)
     else:
       self._delete_labels_for_img_id(img_id)
-    self._add_rows_for_labels(img_id, labels)    
+    self._add_rows_for_labels(img_id, labels, flip=flip)
       
   def _id_for_img(self, img):
     c = self.conn.cursor()
@@ -62,14 +63,20 @@ class LabelDB(object):
     c.execute("delete from labels where img_id=?", (img_id,))
     self.conn.commit()
 
-  def _add_rows_for_labels(self, img_id, labels):
+  def _add_rows_for_labels(self, img_id, labels, flip=False):
     c = self.conn.cursor()
     for x, y in labels:
+      if flip:
+        # TODO: DANGER WILL ROBERTSON! the existence of this, for the population
+        #       of db from centroids_of_connected_components denotes some inconsistency
+        #       somewhere... :/
+        x, y = y, x
       c.execute("insert into labels (img_id, x, y) values (?, ?, ?)", (img_id, x, y,))
     self.conn.commit()
+
     
 if __name__ == "__main__":
-  db = LabelDB()
+  db = LabelDB(label_db_file='label.staging.db')
   db.create_if_required()
   print(db.get_labels("foo.png"))
   db.set_labels("foo.png", [(3,1), (4,1), (5,9)])

@@ -10,7 +10,7 @@ from label_db import LabelDB
 import re
 
 class LabelUI():
-  def __init__(self, img_dir):
+  def __init__(self, label_db_filename, img_dir):
     
     # what images to review?
     # note: drop trailing / in dir name (if present)
@@ -20,7 +20,7 @@ class LabelUI():
     print("files to review", self.files)
 
     # label db
-    self.label_db = LabelDB()
+    self.label_db = LabelDB(label_db_filename)
     self.label_db.create_if_required()
 
     # TK UI
@@ -111,7 +111,7 @@ class LabelUI():
 import argparse
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--image-dir', type=str, required=True)
-#parser.add_argument('--output-dir', type=str, required=True)
+parser.add_argument('--label-db', type=str, required=True)
 opts = parser.parse_args() 
 
-LabelUI(opts.image_dir)
+LabelUI(opts.label_db, opts.image_dir)

@@ -109,10 +109,13 @@ for idx in range(10000):
   debug_img_summary = u.PILImageToTFSummary(u.debug_img(i, bm, o))
   train_summaries_writer.add_summary(loss_summaries, step)
   train_summaries_writer.add_summary(debug_img_summary, step)  
+
   # ... test
-  i, bm, o, loss_summaries, step = sess.run([test_imgs, test_xys_bitmaps, test_model.output,
-                                             summaries_op, global_step],
-                                            feed_dict={test_model.is_training: False})
+  i, bm, logits, o, loss_summaries, step = sess.run([test_imgs, test_xys_bitmaps,
+                                                     test_model.logits, test_model.output,
+                                                     summaries_op, global_step],
+                                                    feed_dict={test_model.is_training: False})
+  print("logits", logits.shape, np.min(logits), np.max(logits))
   debug_img_summary = u.PILImageToTFSummary(u.debug_img(i, bm, o))
   test_summaries_writer.add_summary(loss_summaries, step)
   test_summaries_writer.add_summary(debug_img_summary, step)

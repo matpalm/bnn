@@ -1,6 +1,8 @@
 from PIL import Image, ImageDraw
+from skimage import measure
 import StringIO
 import data
+import numpy as np
 import tensorflow as tf
 
 def debug_img(i, bm, o):
@@ -45,3 +47,52 @@ def dice_loss(y, y_hat, batch_size, smoothing=0):
   loss = 1.0 - score
 #  loss = tf.Print(loss, [intersection, intersection_rs, nom, denom], first_n=100, summarize=10000)
   return loss
+
+def centroids_of_connected_components(bitmap, threshold=0.05, rescale=1.0):
+  # threshold
+  mask = bitmap > threshold
+  bitmap = np.zeros_like(bitmap)
+  bitmap[mask] = 1.0
+  # calc connected components
+  all_labels = measure.label(bitmap)
+  num_components = np.max(all_labels) + 1
+  # return centroids
+  centroids = []
+  for region in measure.regionprops(all_labels):
+    cx, cy = map(lambda p: int(p*rescale), region.centroid)
+    centroids.append((cx, cy))
+  return centroids
+
+def bitmap_from_centroids(centroids, h, w):
+  bitmap = np.zeros((h, w, 1))
+  for cx, cy in centroids:
+    bitmap[cx, cy] = 1.0
+  return bitmap
+
+def bitmap_to_pil_image(bitmap):
+  h, w, c = bitmap.shape
+  assert c == 1
+  rgb_array = np.zeros((h, w, 3), dtype=np.uint8)
+  single_channel = bitmap[:,:,0] * 255
+  rgb_array[:,:,0] = single_channel
+  rgb_array[:,:,1] = single_channel
+  rgb_array[:,:,2] = single_channel
+  return Image.fromarray(rgb_array)
+
+def side_by_side(rgb, bitmap):
+  h, w, _ = rgb.shape
+  canvas = Image.new('RGB', (w*2, h), (50, 50, 50))
+  # paste RGB on left hand side
+  lhs = Image.fromarray(rgb)
+  canvas.paste(lhs, (0, 0))
+  # paste bitmap version of labels on right hand side
+  # black with white dots at labels
+  rhs = bitmap_to_pil_image(bitmap)
+  rhs = rhs.resize((w, h))
+  canvas.paste(rhs, (w, 0))
+  # draw on a blue border (and blue middle divider) to make it
+  # easier to see relative positions.
+  draw = ImageDraw.Draw(canvas)
+  draw.polygon([0,0,w*2-1,0,w*2-1,h-1,0,h-1], outline='blue')
+  draw.line([w,0,w,h], fill='blue')
+  return canvas
