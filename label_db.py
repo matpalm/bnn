@@ -22,6 +22,11 @@ class LabelDB(object):
         # assume table already exists? clumsy...
         pass
 
+  def imgs(self):
+    c = self.conn.cursor()
+    c.execute("select filename from imgs")
+    return set(map(lambda f: f[0], c.fetchall()))
+    
   def has_labels(self, img):
     id = self._id_for_img(img)
     return id is not None
@@ -78,8 +83,9 @@ class LabelDB(object):
 if __name__ == "__main__":
   db = LabelDB(label_db_file='label.staging.db')
   db.create_if_required()
-  print(db.get_labels("foo.png"))
-  db.set_labels("foo.png", [(3,1), (4,1), (5,9)])
-  print(db.get_labels("foo.png"))  
+#  print(db.get_labels("foo.png"))
+#  db.set_labels("foo.png", [(3,1), (4,1), (5,9)])
+#  print(db.get_labels("foo.png"))
+  print(db.imgs())
    
                                   
