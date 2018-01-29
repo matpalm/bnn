@@ -34,16 +34,12 @@ db.create_if_required()
 
 for idx in itertools.count():
   try:
-    img, fn, logits, o = sess.run([test_imgs, test_filenames,
-                                   model.logits, model.output],
-                                  feed_dict={model.is_training: False})
-    print("idx", idx)
-    print("img", img.shape, np.min(img), np.max(img))
-    print("fn", fn)
+    fn, logits, o = sess.run([test_filenames,
+                              model.logits, model.output],
+                             feed_dict={model.is_training: False})
+    print("idx", idx, fn[0])
     print("logits", logits.shape, np.min(logits), np.max(logits))
-    print("output", o.shape, np.min(o), np.max(o))
 
-    img = img[0]
     prediction = o[0]
 
     # calc [(x,y), ...] centroids
@@ -51,12 +47,11 @@ for idx in itertools.count():
 
     # turn these into a bitmap
     # recall! centroids are in half res
-    h, w, _ = img.shape
-    centroids_bitmap = u.bitmap_from_centroids(centroids, h, w)
-
+#    h, w, _ = img.shape
+#    centroids_bitmap = u.bitmap_from_centroids(centroids, h, w)
     # save rgb / bitmap side by side
-    debug_img = u.side_by_side(rgb=img, bitmap=centroids_bitmap)
-    debug_img.save("example_%03d.png" % idx)
+#    debug_img = u.side_by_side(rgb=img, bitmap=centroids_bitmap)
+#    debug_img.save("example_%03d.png" % idx)
 
     # set new labels
     db.set_labels(fn[0], centroids, flip=True)
