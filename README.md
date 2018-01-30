@@ -43,7 +43,9 @@ logits     (16, 256, 192, 1)    #49152
 ## TODOs
 
 * hyperparam selection; (specifically how small a model we can get away with)
-* get dice loss working; should be useful to use? 
+* distill to something that would run on pi itself
+* capture more data from other angles
+* get dice loss working; should be useful?
 * have been randomly sampling images to label, but we ~10,000 over a day. would it make sense to feed in labelled image with the image before/after as a way of grounding changes in background? (have found myself flipping forward/back as a way of discriminating...)
 
 ![rgb_labels_predictions.png](rgb_labels_predictions.png)
