@@ -14,21 +14,27 @@ import util as u
 def img_xys_iterator(base_dir, batch_size, patch_fraction, distort, repeat):
   # return dataset of (image, xys_bitmap) for training
 
-  # load all images
   label_db = LabelDB(check_same_thread=False)
-  rgb_images = []  
-  label_bitmaps = []
-  w, h = None, None
-  for fname in os.listdir(base_dir):
-    # load image
-    img = Image.open("%s/%s" % (base_dir, fname))
-    w, h = img.size
-    # lookup xys
-    xys = label_db.get_labels(fname)
-    # keep track for later stacking
-    rgb_images.append(np.array(img))
-    label_bitmaps.append(xys_to_bitmap(xys, h, w, rescale=0.5))
 
+  # materialise list of filenames and all labels
+  # (lazy load actual image from filename as required, but with caching)
+  filenames = []
+  label_bitmaps = []
+  w, h = 768, 1024
+  for fname in sorted(os.listdir(base_dir)):
+    # keep track of filename
+    filenames.append("%s/%s" % (base_dir, fname))
+    # keep track of labels bitmap
+    label_bitmaps.append(xys_to_bitmap(xys=label_db.get_labels(fname),
+                                       height=h,
+                                       width=w,
+                                       rescale=0.5))
+
+  def decode_image(filename, bitmap):
+    image = tf.image.decode_image(tf.read_file(filename))
+    image = tf.reshape(image, (h, w, 3))  # only required for debugging?
+    return image, bitmap
+  
   def random_crop(rgb, bitmap):
     # we want to use the same crop for both RGB input and bitmap label
     # but the bitmap is half res
@@ -47,8 +53,9 @@ def img_xys_iterator(base_dir, batch_size, patch_fraction, distort, repeat):
 #    rgb = tf.image.per_image_standardization(rgb)
     return rgb, bitmap
 
-  dataset = tf.data.Dataset.from_tensor_slices((np.stack(rgb_images),
-                                                np.stack(label_bitmaps)))
+  dataset = tf.data.Dataset.from_tensor_slices((tf.constant(filenames),
+                                                np.stack(label_bitmaps)))  
+  dataset = dataset.map(decode_image, num_parallel_calls=8)  
   if repeat:
     dataset = dataset.cache().shuffle(50).repeat()
   if patch_fraction > 1:
@@ -63,19 +70,19 @@ def img_xys_iterator(base_dir, batch_size, patch_fraction, distort, repeat):
 
 def img_filename_iterator(base_dir):
   # return dataset of (image, filename) for inference
+  
+  # decide both local path filenames and full path for decoding
+  filenames = sorted(os.listdir(base_dir))
+  full_path_filenames = [ "%s/%s" % (base_dir, f) for f in filenames ]
 
-  # load all images
-  rgb_images = []
-  img_names = []
-  for fname in os.listdir(base_dir):
-    # load image
-    img = Image.open("%s/%s" % (base_dir, fname))
-    # keep track for later stacking
-    rgb_images.append(np.array(img))
-    img_names.append(fname)
+  def decode_image(full_path_filename, filename):
+    image = tf.image.decode_image(tf.read_file(full_path_filename))
+    image = tf.reshape(image, (1024, 768, 3))  # only required for debugging?
+    return image, filename  # reemit filename as "label"
 
-  dataset = tf.data.Dataset.from_tensor_slices((np.stack(rgb_images),
-                                                np.stack(img_names)))
+  dataset = tf.data.Dataset.from_tensor_slices((tf.constant(full_path_filenames),
+                                                tf.constant(filenames)))
+  dataset = dataset.map(decode_image, num_parallel_calls=8)
   return dataset.batch(1).prefetch(1).make_one_shot_iterator().get_next()
 
 def xys_to_bitmap(xys, height, width, rescale=1.0):
