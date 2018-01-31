@@ -9,11 +9,6 @@ import datetime
 import os
 import time
 
-camera = PiCamera()
-camera.resolution = (1024, 768)
-
-time.sleep(2)  # wait for auto gains / balances to settle
-
 while True:
   dts = datetime.datetime.now()
   YMD ="%04d%02d%02d" % (dts.year, dts.month, dts.day)
@@ -23,6 +18,10 @@ while True:
   if not os.path.exists(output_dir):
     os.makedirs(output_dir)
   output_filename = "%s/%s_%s" % (output_dir, YMD, HMS)
-  camera.capture(output_filename)
+
+  with PiCamera() as camera:
+    camera.resolution = (1024, 768)
+    time.sleep(2)  # wait for auto gains / balances to settle.
+    camera.capture(output_filename)
   
-  time.sleep(10)
+  time.sleep(8)  # bring it up to ~10s for entire loop.
