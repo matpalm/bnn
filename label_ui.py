@@ -15,9 +15,9 @@ class LabelUI():
     # what images to review?
     # note: drop trailing / in dir name (if present)
     self.img_dir = re.sub("/$", "", img_dir)  
-    self.files = os.listdir(img_dir)
+    self.files = sorted(os.listdir(img_dir))
 #    random.shuffle(self.files)
-    print("files to review", self.files)
+    print("%d files to review" % len(self.files))
 
     # label db
     self.label_db = LabelDB(label_db_filename)

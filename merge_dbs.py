@@ -8,30 +8,23 @@ import argparse
 # super clumsy :/
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--src1', type=str, required=True)
-parser.add_argument('--src2', type=str, required=True)
-parser.add_argument('--dest', type=str, required=True)
+parser.add_argument('--from-db', type=str, required=True, help='db to take entries from')
+parser.add_argument('--to-db', type=str, required=True, help='db to add entries to')
 opts = parser.parse_args()
 
-assert opts.src1 != opts.src2
+assert opts.from_db != opts.to_db
 
-src1 = LabelDB(label_db_file=opts.src1)
-imgs1 = src1.imgs()
-print("imgs1", len(imgs1))
-assert len(imgs1) > 0
+from_db = LabelDB(label_db_file=opts.from_db)
+to_db = LabelDB(label_db_file=opts.to_db)
+      
+num_ignored = 0
+num_added = 0
+for img in from_db.imgs():
+  if to_db.has_labels(img):
+    print("ignore", img, "; already in to_db")
+    num_ignored += 1    
+  else:
+    to_db.set_labels(img, from_db.get_labels(img))
+    num_added += 1
 
-src2 = LabelDB(label_db_file=opts.src2)
-imgs2 = src2.imgs()
-print("imgs2", len(imgs2))
-assert len(imgs2) > 0
-
-assert len(imgs1.intersection(imgs2)) == 0
-
-dest = LabelDB(label_db_file=opts.dest)
-dest.create_if_required()
-
-for img in imgs1:
-  dest.set_labels(img, src1.get_labels(img))
-for img in imgs2:
-  dest.set_labels(img, src2.get_labels(img))
-print("dest", len(dest.imgs()))
+print("num_ignored", num_ignored, "num_added", num_added)
