@@ -21,7 +21,7 @@ ls images/2017_11_12/|shuf|head|perl -ne'chomp;print "cp images/2017_11_12/$_ im
 ## train
 
 ```
-./train.py --batch-size 16 --patch-fraction 2 --run r1
+./train.py --run r1
 ```
 
 ```
