@@ -15,6 +15,7 @@ def dump_shape_and_product_of(tag, t):
 class Model(object):
 
   def __init__(self, imgs, use_skip_connections=True, base_filter_size=16):
+    print("use_skip_connections", use_skip_connections)
     self.is_training = tf.placeholder(tf.bool, name="is_training")
     self.imgs = imgs
 

@@ -18,6 +18,8 @@ parser.add_argument('--patch-fraction', type=int, default=2)
 parser.add_argument('--batch-size', type=int, default=32)
 parser.add_argument('--learning-rate', type=float, default=0.001)
 parser.add_argument('--run', type=str, required=True, help="run dir for tb")
+parser.add_argument('--no-use-skip-connections', action='store_true')
+parser.add_argument('--base-filter-size', type=int, default=16)
 opts = parser.parse_args()
 print("opts %s" % opts, file=sys.stderr)
   
@@ -41,10 +43,14 @@ print(test_xys_bitmaps.get_shape())
 # TODO: opts for skip and base filters
 with tf.variable_scope("train_test_model") as scope:
   print("patch train model...")
-  train_model = model.Model(train_imgs)
+  train_model = model.Model(train_imgs,
+                            use_skip_connections=not opts.no_use_skip_connections,
+                            base_filter_size=opts.base_filter_size)
   scope.reuse_variables()
   print("full res test model...")  
-  test_model = model.Model(test_imgs)
+  test_model = model.Model(test_imgs,
+                           use_skip_connections=not opts.no_use_skip_connections,
+                           base_filter_size=opts.base_filter_size)
 
 global_step = tf.train.get_or_create_global_step()
 

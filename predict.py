@@ -37,13 +37,13 @@ for idx in itertools.count():
     fn, logits, o = sess.run([test_filenames,
                               model.logits, model.output],
                              feed_dict={model.is_training: False})
-    print("idx", idx, fn[0])
-    print("logits", logits.shape, np.min(logits), np.max(logits))
 
     prediction = o[0]
 
     # calc [(x,y), ...] centroids
     centroids = u.centroids_of_connected_components(prediction, rescale=2.0)
+
+    print("\t".join(map(str, [idx, fn[0], np.min(logits), np.max(logits), len(centroids)])))
 
     # turn these into a bitmap
     # recall! centroids are in half res
