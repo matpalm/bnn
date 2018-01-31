@@ -11,7 +11,7 @@ import random
 import tensorflow as tf
 import util as u
 
-def img_xys_iterator(base_dir, batch_size, patch_fraction, distort, repeat):
+def img_xys_iterator(base_dir, batch_size, patch_fraction, distort_rgb, flip_left_right, repeat):
   # return dataset of (image, xys_bitmap) for training
 
   label_db = LabelDB(check_same_thread=False)
@@ -34,6 +34,13 @@ def img_xys_iterator(base_dir, batch_size, patch_fraction, distort, repeat):
     image = tf.image.decode_image(tf.read_file(filename))
     image = tf.reshape(image, (h, w, 3))  # only required for debugging?
     return image, bitmap
+
+  def random_flip_left_right(rgb, bitmap):
+    random = tf.random_uniform([], 0, 1, dtype=tf.float32)
+    return tf.cond(random < 0.5,
+                   lambda: (rgb, bitmap),
+                   lambda: (tf.image.flip_left_right(rgb),
+                            tf.image.flip_left_right(bitmap)))
   
   def random_crop(rgb, bitmap):
     # we want to use the same crop for both RGB input and bitmap label
@@ -60,7 +67,9 @@ def img_xys_iterator(base_dir, batch_size, patch_fraction, distort, repeat):
     dataset = dataset.cache().shuffle(50).repeat()
   if patch_fraction > 1:
     dataset = dataset.map(random_crop, num_parallel_calls=8)
-  if distort:
+  if flip_left_right:
+    dataset = dataset.map(random_flip_left_right, num_parallel_calls=8)
+  if distort_rgb:
     dataset = dataset.map(distort_rgb, num_parallel_calls=8)
   return (dataset.
           batch(batch_size).
@@ -96,11 +105,12 @@ if __name__ == "__main__":
   import argparse
   parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
   parser.add_argument('--image-dir', type=str, default="images/sample_originals/train")
-  parser.add_argument('--batch-size', type=int, default=16)
+  parser.add_argument('--batch-size', type=int, default=4)
   parser.add_argument('--patch-fraction', type=int, default=1,
                       help="what fraction of image to use as patch. 1 => no patch")
   parser.add_argument('--distort', action='store_true')
   opts = parser.parse_args()
+  print(opts)
   
   from PIL import Image, ImageDraw
 
@@ -109,7 +119,8 @@ if __name__ == "__main__":
   imgs, xyss = img_xys_iterator(base_dir=opts.image_dir,
                                 batch_size=opts.batch_size,
                                 patch_fraction=opts.patch_fraction,
-                                distort=opts.distort,
+                                distort_rgb=opts.distort,
+                                flip_left_right=opts.distort,
                                 repeat=True)
 
   for b in range(3):

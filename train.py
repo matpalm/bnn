@@ -20,6 +20,8 @@ parser.add_argument('--learning-rate', type=float, default=0.001)
 parser.add_argument('--run', type=str, required=True, help="run dir for tb")
 parser.add_argument('--no-use-skip-connections', action='store_true')
 parser.add_argument('--base-filter-size', type=int, default=16)
+parser.add_argument('--flip-left-right', action='store_true')
+parser.add_argument('--steps', type=int, default=1000, help='number of times to do x100 steps, then summaries')
 opts = parser.parse_args()
 print("opts %s" % opts, file=sys.stderr)
   
@@ -29,15 +31,17 @@ np.set_printoptions(precision=2, threshold=10000, suppress=True, linewidth=10000
 train_imgs, train_xys_bitmaps = data.img_xys_iterator(base_dir=opts.train_image_dir,
                                                       batch_size=opts.batch_size,
                                                       patch_fraction=opts.patch_fraction,
-                                                      distort=True, repeat=True)
+                                                      distort_rgb=True,
+                                                      flip_left_right=opts.flip_left_right,
+                                                      repeat=True)
 test_imgs, test_xys_bitmaps = data.img_xys_iterator(base_dir=opts.test_image_dir,
                                                     batch_size=1,
                                                     patch_fraction=1,
-                                                    distort=False, repeat=True)
+                                                    distort_rgb=False,
+                                                    flip_left_right=False,
+                                                    repeat=True)
 print(test_imgs.get_shape())
 print(test_xys_bitmaps.get_shape())
-#train_imgs = tf.reshape(train_imgs, (opts.batch_size, 1024/opts.patch_fraction, 768/opts.patch_fraction, 3))  
-#test_imgs = tf.reshape(test_imgs, (1, 1024, 768, 3))
 
 # Build training and test model with same params.
 # TODO: opts for skip and base filters
@@ -96,7 +100,7 @@ test_summaries_writer = tf.summary.FileWriter("tb/%s/test" % opts.run, sess.grap
 
 import time
 
-for idx in range(10000):
+for idx in range(opts.steps):
   
   # train a bit.
   start_time = time.time()

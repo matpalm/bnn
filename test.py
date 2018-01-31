@@ -24,7 +24,8 @@ opts = parser.parse_args()
 test_imgs, test_xys_bitmaps = data.img_xys_iterator(base_dir=opts.image_dir,
                                                     batch_size=opts.batch_size,
                                                     patch_fraction=1,
-                                                    distort=False,
+                                                    distort_rgb=False,
+                                                    flip_left_right=False,
                                                     repeat=False)
 
 with tf.variable_scope("train_test_model") as scope:  # clumsy :/
