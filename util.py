@@ -23,7 +23,13 @@ def debug_img(i, bm, o):
   draw.line([3*w,0,3*w,h], fill='blue')
   return canvas
 
-def PILImageToTFSummary(img):
+def explicit_loss_summary(xent_loss, dice_loss):
+  return tf.Summary(value=[
+    tf.Summary.Value(tag="xent_loss", simple_value=xent_loss),
+    tf.Summary.Value(tag="dice_loss", simple_value=dice_loss)
+  ])
+
+def pil_image_to_tf_summary(img):
   # serialise png bytes
   sio = StringIO.StringIO()
   img.save(sio, format="png")

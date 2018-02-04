@@ -50,36 +50,24 @@ with tf.variable_scope("train_test_model") as scope:
   train_model = model.Model(train_imgs,
                             use_skip_connections=not opts.no_use_skip_connections,
                             base_filter_size=opts.base_filter_size)
+  train_model.calculate_losses_wrt(labels=train_xys_bitmaps,
+                                   batch_size=opts.batch_size)
+
   scope.reuse_variables()
   print("full res test model...")  
   test_model = model.Model(test_imgs,
                            use_skip_connections=not opts.no_use_skip_connections,
                            base_filter_size=opts.base_filter_size)
+  test_model.calculate_losses_wrt(labels=test_xys_bitmaps,
+                                  batch_size=opts.batch_size)
 
 global_step = tf.train.get_or_create_global_step()
 
-# Setup loss and optimiser.
-labels = tf.to_float(train_xys_bitmaps)
-
-xent_loss = tf.reduce_mean(
-  tf.nn.sigmoid_cross_entropy_with_logits(labels=labels,
-                                          logits=train_model.logits))
-
-dice_loss = tf.reduce_mean(u.dice_loss(labels,
-                                       tf.sigmoid(train_model.logits),
-                                       batch_size=opts.batch_size, # clumsy :/
-                                       smoothing=1e-2))
-
 optimiser = tf.train.AdamOptimizer(learning_rate=opts.learning_rate)
 
-xent_weight = 1.000
-dice_weight = 0.000  # TODO: hmm. no success with this yet...  (1e-4 would put it ~= xent)
-total_loss = xent_weight * xent_loss + dice_weight * dice_loss
-
-# TODO: include this
+# TODO: reinclude reg loss
 # regularisation_loss = tf.add_n(tf.losses.get_regularization_losses())  
-
-train_op = slim.learning.create_train_op(total_loss = total_loss, # + regularisation_loss,
+train_op = slim.learning.create_train_op(total_loss = train_model.loss, # + regularisation_loss,
                                          optimizer = optimiser,
                                          summarize_gradients = False)
 
@@ -89,12 +77,7 @@ sess_config = tf.ConfigProto()
 sess = tf.Session(config=sess_config)
 sess.run(tf.global_variables_initializer())
 
-# Setup summaries.
-summaries = [
-  tf.summary.scalar('xent_loss', xent_loss),
-  tf.summary.scalar('dice_loss', dice_loss),
-]
-summaries_op = tf.summary.merge(summaries)
+# Setup summary writers. (Will create explicit summaries to write)
 train_summaries_writer = tf.summary.FileWriter("tb/%s/training" % opts.run, sess.graph)
 test_summaries_writer = tf.summary.FileWriter("tb/%s/test" % opts.run, sess.graph)
 
@@ -105,7 +88,7 @@ for idx in range(opts.steps):
   # train a bit.
   start_time = time.time()
   for _ in range(100):
-    _, xl, dl = sess.run([train_op, xent_loss, dice_loss],
+    _, xl, dl = sess.run([train_op, train_model.xent_loss, train_model.dice_loss],
                          feed_dict={train_model.is_training: True})
   training_time = time.time() - start_time
   print("idx %d\txent_loss %f\tdice_loss %f\ttime %f" % (idx, xl, dl, training_time))
@@ -113,22 +96,28 @@ for idx in range(opts.steps):
   # train / test summaries
   # includes loss summaries as well as a hand rolled debug image
   # ...train
-  i, bm, o, loss_summaries, step = sess.run([train_imgs, train_xys_bitmaps, train_model.output,
-                                             summaries_op, global_step],
+  i, bm, logits, o, xl, dl, step = sess.run([train_imgs, train_xys_bitmaps,
+                                             train_model.logits, train_model.output,
+                                             train_model.xent_loss, train_model.dice_loss,
+                                             global_step],
                                             feed_dict={train_model.is_training: False})
-  debug_img_summary = u.PILImageToTFSummary(u.debug_img(i, bm, o))
-  train_summaries_writer.add_summary(loss_summaries, step)
+  print("train logits", logits.shape, np.min(logits), np.max(logits))
+  train_summaries_writer.add_summary(u.explicit_loss_summary(xl, dl), step)
+  debug_img_summary = u.pil_image_to_tf_summary(u.debug_img(i, bm, o))
   train_summaries_writer.add_summary(debug_img_summary, step)  
+  train_summaries_writer.flush()
 
   # ... test
-  i, bm, logits, o, loss_summaries, step = sess.run([test_imgs, test_xys_bitmaps,
-                                                     test_model.logits, test_model.output,
-                                                     summaries_op, global_step],
-                                                    feed_dict={test_model.is_training: False})
-  print("logits", logits.shape, np.min(logits), np.max(logits))
-  debug_img_summary = u.PILImageToTFSummary(u.debug_img(i, bm, o))
-  test_summaries_writer.add_summary(loss_summaries, step)
+  i, bm, logits, o, xl, dl, step = sess.run([test_imgs, test_xys_bitmaps,
+                                             test_model.logits, test_model.output,
+                                             test_model.xent_loss, test_model.dice_loss,
+                                             global_step],
+                                            feed_dict={test_model.is_training: False})
+  print("test logits", logits.shape, np.min(logits), np.max(logits))
+  test_summaries_writer.add_summary(u.explicit_loss_summary(xl, dl), step)
+  debug_img_summary = u.pil_image_to_tf_summary(u.debug_img(i, bm, o))
   test_summaries_writer.add_summary(debug_img_summary, step)
+  test_summaries_writer.flush()
 
   # save checkpoint
   train_model.save(sess, "ckpts/%s" % opts.run)
