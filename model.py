@@ -15,9 +15,8 @@ def dump_shape_and_product_of(tag, t):
 
 class Model(object):
 
-  def __init__(self, imgs, use_skip_connections=True, base_filter_size=16):
+  def __init__(self, imgs, is_training, use_skip_connections=True, base_filter_size=16):
     print("use_skip_connections", use_skip_connections)
-    self.is_training = tf.placeholder(tf.bool, name="is_training")
     self.imgs = imgs
 
     # leave this conversion as late as possible to avoid storing floats in queue
@@ -30,6 +29,7 @@ class Model(object):
     dump_shape_and_product_of('input', model)
     
     e1 = slim.conv2d(model, num_outputs=base_filter_size, kernel_size=3, stride=2, scope='e1')
+#    e1 = slim.batch_norm(e1, decay=0.9, is_training=is_training)
     dump_shape_and_product_of('e1', e1)
     
     e2 = slim.conv2d(e1, num_outputs=2*base_filter_size, kernel_size=3, stride=2, scope='e2')

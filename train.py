@@ -21,7 +21,7 @@ parser.add_argument('--run', type=str, required=True, help="run dir for tb")
 parser.add_argument('--no-use-skip-connections', action='store_true')
 parser.add_argument('--base-filter-size', type=int, default=16)
 parser.add_argument('--flip-left-right', action='store_true')
-parser.add_argument('--steps', type=int, default=1000, help='number of times to do x100 steps, then summaries')
+parser.add_argument('--steps', type=int, default=1000, help='number of steps (test, summaries every 100)')
 opts = parser.parse_args()
 print("opts %s" % opts, file=sys.stderr)
   
@@ -48,14 +48,16 @@ print(test_xys_bitmaps.get_shape())
 with tf.variable_scope("train_test_model") as scope:
   print("patch train model...")
   train_model = model.Model(train_imgs,
+                            is_training=True,
                             use_skip_connections=not opts.no_use_skip_connections,
                             base_filter_size=opts.base_filter_size)
   train_model.calculate_losses_wrt(labels=train_xys_bitmaps,
                                    batch_size=opts.batch_size)
 
-  scope.reuse_variables()
+with tf.variable_scope("train_test_model", reuse=tf.AUTO_REUSE) as scope:
   print("full res test model...")  
   test_model = model.Model(test_imgs,
+                           is_training=False,
                            use_skip_connections=not opts.no_use_skip_connections,
                            base_filter_size=opts.base_filter_size)
   test_model.calculate_losses_wrt(labels=test_xys_bitmaps,
@@ -83,13 +85,12 @@ test_summaries_writer = tf.summary.FileWriter("tb/%s/test" % opts.run, sess.grap
 
 import time
 
-for idx in range(opts.steps):
-  
+INNER_STEPS = 100  # TODO: better name :/
+for idx in range(opts.steps / INNER_STEPS):
   # train a bit.
   start_time = time.time()
-  for _ in range(100):
-    _, xl, dl = sess.run([train_op, train_model.xent_loss, train_model.dice_loss],
-                         feed_dict={train_model.is_training: True})
+  for _ in range(INNER_STEPS):
+    _, xl, dl = sess.run([train_op, train_model.xent_loss, train_model.dice_loss])
   training_time = time.time() - start_time
   print("idx %d\txent_loss %f\tdice_loss %f\ttime %f" % (idx, xl, dl, training_time))
     
@@ -99,8 +100,7 @@ for idx in range(opts.steps):
   i, bm, logits, o, xl, dl, step = sess.run([train_imgs, train_xys_bitmaps,
                                              train_model.logits, train_model.output,
                                              train_model.xent_loss, train_model.dice_loss,
-                                             global_step],
-                                            feed_dict={train_model.is_training: False})
+                                             global_step])
   print("train logits", logits.shape, np.min(logits), np.max(logits))
   train_summaries_writer.add_summary(u.explicit_loss_summary(xl, dl), step)
   debug_img_summary = u.pil_image_to_tf_summary(u.debug_img(i, bm, o))
@@ -111,8 +111,7 @@ for idx in range(opts.steps):
   i, bm, logits, o, xl, dl, step = sess.run([test_imgs, test_xys_bitmaps,
                                              test_model.logits, test_model.output,
                                              test_model.xent_loss, test_model.dice_loss,
-                                             global_step],
-                                            feed_dict={test_model.is_training: False})
+                                             global_step])
   print("test logits", logits.shape, np.min(logits), np.max(logits))
   test_summaries_writer.add_summary(u.explicit_loss_summary(xl, dl), step)
   debug_img_summary = u.pil_image_to_tf_summary(u.debug_img(i, bm, o))

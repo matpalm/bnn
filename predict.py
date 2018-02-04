@@ -18,13 +18,18 @@ parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFo
 parser.add_argument('--image-dir', type=str, required=True)
 parser.add_argument('--label-db', type=str, required=True)
 parser.add_argument('--run', type=str, required=True, help='model')
+parser.add_argument('--no-use-skip-connections', action='store_true')
+parser.add_argument('--base-filter-size', type=int, default=16)
 opts = parser.parse_args()
 
 # test data reader
 test_imgs, test_filenames = data.img_filename_iterator(base_dir=opts.image_dir)
 
 with tf.variable_scope("train_test_model") as scope:  # clumsy :/
-  model = model.Model(test_imgs)
+  model = model.Model(test_imgs,
+                      is_training=False,
+                      use_skip_connections=not opts.no_use_skip_connections,
+                      base_filter_size=opts.base_filter_size)
   
 sess = tf.Session()
 model.restore(sess, "ckpts/%s" % opts.run)
@@ -34,9 +39,7 @@ db.create_if_required()
 
 for idx in itertools.count():
   try:
-    fn, logits, o = sess.run([test_filenames,
-                              model.logits, model.output],
-                             feed_dict={model.is_training: False})
+    fn, logits, o = sess.run([test_filenames, model.logits, model.output])
 
     prediction = o[0]
 
