@@ -25,6 +25,7 @@ class LabelUI():
 
     # TK UI
     root = tk.Tk()
+    root.title(label_db_filename)
     root.bind('n', self.display_next_image)
     root.bind('N', self.display_next_unlabelled_image)
     root.bind('p', self.display_previous_image)

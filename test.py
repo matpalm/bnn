@@ -44,8 +44,8 @@ model.restore(sess, "ckpts/%s" % opts.run)
     
 for idx in itertools.count():
   try:
-    dice_l = sess.run(model.dice_loss)
-    print("idx", idx, "dice_loss", dice_l)
+    dice_l, xent_l = sess.run([model.dice_loss, model.xent_loss])
+    print("idx", idx, "dice_loss", dice_l, "xent_loss", xent_l)
   except tf.errors.OutOfRangeError:
     # end of iterator
     break

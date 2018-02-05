@@ -92,7 +92,8 @@ for idx in range(opts.steps / INNER_STEPS):
   for _ in range(INNER_STEPS):
     _, xl, dl = sess.run([train_op, train_model.xent_loss, train_model.dice_loss])
   training_time = time.time() - start_time
-  print("idx %d\txent_loss %f\tdice_loss %f\ttime %f" % (idx, xl, dl, training_time))
+  print("idx %d/%d\txent_loss %f\tdice_loss %f\ttime %f" % (idx, opts.steps / INNER_STEPS,
+                                                            xl, dl, training_time))
     
   # train / test summaries
   # includes loss summaries as well as a hand rolled debug image
