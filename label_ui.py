@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 import Tkinter as tk
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageDraw
 import os
 import sqlite3
 import random
@@ -26,9 +26,10 @@ class LabelUI():
     # TK UI
     root = tk.Tk()
     root.title(label_db_filename)
-    root.bind('n', self.display_next_image)
+    root.bind('<Right>', self.display_next_image)
     root.bind('N', self.display_next_unlabelled_image)
-    root.bind('p', self.display_previous_image)
+    root.bind('<Left>', self.display_previous_image)
+    root.bind('<Up>', self.toggle_bees)
     self.canvas = tk.Canvas(root, cursor='tcross')
     self.canvas.config(width=768, height=1024)
     self.canvas.bind('<Button-1>', self.add_bee_event)  # left mouse button
@@ -40,19 +41,47 @@ class LabelUI():
     # the bee x,y in current image.
     self.x_y_to_boxes = {}  # { (x, y): canvas_id, ... }
 
+    # a flag to denote if bees are being displayed or not
+    # while no displayed we lock down all img navigation
+    self.bees_on = True
+
     # Main review loop
     self.file_idx = 0
     self.display_new_image()
     root.mainloop()
 
   def add_bee_event(self, e):
+    if not self.bees_on:
+      print("ignore add bee; bees not on")
+      return
     self.add_bee_at(e.x, e.y)
 
   def add_bee_at(self, x, y):
     rectangle_id = self.canvas.create_rectangle(x-2,y-2,x+2,y+2, fill='red')
     self.x_y_to_boxes[(x, y)] = rectangle_id
+
+  def remove_bee(self, rectangle_id):
+    self.canvas.delete(rectangle_id)
     
+  def toggle_bees(self, e):
+    if self.bees_on:
+      # store x,y s in tmp list and delete all rectangles from canvas
+      self.tmp_x_y = []
+      for (x, y), rectangle_id in self.x_y_to_boxes.iteritems():
+        self.remove_bee(rectangle_id)
+        self.tmp_x_y.append((x, y))
+      self.x_y_to_boxes = {}
+      self.bees_on = False
+    else:  # bees not on
+      # restore all temp stored bees
+      for x, y in self.tmp_x_y:
+        self.add_bee_at(x, y)
+      self.bees_on = True
+
   def remove_closest_bee_event(self, e):
+    if not self.bees_on:
+      print("ignore remove bee; bees not on")
+      return
     if len(self.x_y_to_boxes) == 0: return
     closest_point = closest_sqr_distance = None
     for x, y in self.x_y_to_boxes.keys():
@@ -60,9 +89,12 @@ class LabelUI():
       if sqr_distance < closest_sqr_distance or closest_point is None:
         closest_point = (x, y)
         closest_sqr_distance = sqr_distance
-    self.canvas.delete(self.x_y_to_boxes.pop(closest_point))
+    self.remove_bee(self.x_y_to_boxes.pop(closest_point))
 
   def display_next_image(self, e=None):
+    if not self.bees_on:
+      print("ignore move to next image; bees not on")
+      return
     self._flush_pending_x_y_to_boxes()
     self.file_idx += 1
     if self.file_idx == len(self.files):
@@ -81,8 +113,11 @@ class LabelUI():
       if not self.label_db.has_labels(self.files[self.file_idx]):
         break
     self.display_new_image()
-    
+  
   def display_previous_image(self, e=None):
+    if not self.bees_on:
+      print("ignore move to previous image; bees not on")
+      return
     self._flush_pending_x_y_to_boxes()
     self.file_idx -= 1
     if self.file_idx < 0:
@@ -99,8 +134,10 @@ class LabelUI():
     
   def display_new_image(self):
     img_name = self.files[self.file_idx]
-    # Display image.    
+    # Display image (with filename added)
     img = Image.open(self.img_dir + "/" + img_name)
+    canvas = ImageDraw.Draw(img)
+    canvas.text((0,0), img_name, fill='black')
     self.tk_img = ImageTk.PhotoImage(img)
     self.canvas.create_image(0,0, image=self.tk_img, anchor=tk.NW)
     # Look up any existing bees in DB for this image.
