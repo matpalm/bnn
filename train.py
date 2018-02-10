@@ -19,6 +19,7 @@ parser.add_argument('--batch-size', type=int, default=32, help=' ')
 parser.add_argument('--learning-rate', type=float, default=0.001, help=' ')
 parser.add_argument('--run', type=str, required=True, help="run dir for tb & ckpts")
 parser.add_argument('--no-use-skip-connections', action='store_true', help='set to disable skip connections')
+parser.add_argument('--no-use-batch-norm', action='store_true', help='set to disable batch norm')
 parser.add_argument('--base-filter-size', type=int, default=16, help=' ')
 parser.add_argument('--flip-left-right', action='store_true')
 parser.add_argument('--steps', type=int, default=100000, help='number of steps (test, summaries every 100)')
@@ -53,7 +54,8 @@ with tf.variable_scope("train_test_model") as scope:
   train_model = model.Model(train_imgs,
                             is_training=True,
                             use_skip_connections=not opts.no_use_skip_connections,
-                            base_filter_size=opts.base_filter_size)
+                            base_filter_size=opts.base_filter_size,
+                            use_batch_norm=not opts.no_use_batch_norm)
   train_model.calculate_losses_wrt(labels=train_xys_bitmaps,
                                    batch_size=opts.batch_size)
 
@@ -62,7 +64,8 @@ with tf.variable_scope("train_test_model", reuse=tf.AUTO_REUSE) as scope:
   test_model = model.Model(test_imgs,
                            is_training=False,
                            use_skip_connections=not opts.no_use_skip_connections,
-                           base_filter_size=opts.base_filter_size)
+                           base_filter_size=opts.base_filter_size,
+                           use_batch_norm=not opts.no_use_batch_norm)
   test_model.calculate_losses_wrt(labels=test_xys_bitmaps,
                                   batch_size=opts.batch_size)
 

@@ -19,6 +19,7 @@ parser.add_argument('--image-dir', type=str, required=True)
 parser.add_argument('--run', type=str, required=True, help='model')
 parser.add_argument('--batch-size', type=int, default=16)
 parser.add_argument('--no-use-skip-connections', action='store_true')
+parser.add_argument('--no-use-batch-norm', action='store_true')
 parser.add_argument('--base-filter-size', type=int, default=16)
 opts = parser.parse_args()
 print(opts)
@@ -35,7 +36,8 @@ with tf.variable_scope("train_test_model") as scope:  # clumsy :/
   model = model.Model(test_imgs,
                       is_training=False,
                       use_skip_connections=not opts.no_use_skip_connections,
-                      base_filter_size=opts.base_filter_size)
+                      base_filter_size=opts.base_filter_size,
+                      use_batch_norm=not opts.no_use_batch_norm)
   model.calculate_losses_wrt(labels=test_xys_bitmaps,
                              batch_size=opts.batch_size)
   
