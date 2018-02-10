@@ -11,10 +11,11 @@ import random
 import tensorflow as tf
 import util as u
 
-def img_xys_iterator(base_dir, batch_size, patch_fraction, distort_rgb, flip_left_right, repeat):
+def img_xys_iterator(base_dir, batch_size, patch_fraction, distort_rgb, flip_left_right, repeat,
+                     label_db='label.db'):
   # return dataset of (image, xys_bitmap) for training
 
-  label_db = LabelDB(check_same_thread=False)
+  label_db = LabelDB(label_db_file=label_db, check_same_thread=False)
 
   # materialise list of filenames and all labels
   # (lazy load actual image from filename as required, but with caching)

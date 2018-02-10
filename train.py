@@ -14,14 +14,15 @@ import util as u
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--train-image-dir', type=str, default="images/sample_originals/train")
 parser.add_argument('--test-image-dir', type=str, default="images/sample_originals/test")
-parser.add_argument('--patch-fraction', type=int, default=2)
-parser.add_argument('--batch-size', type=int, default=32)
-parser.add_argument('--learning-rate', type=float, default=0.001)
-parser.add_argument('--run', type=str, required=True, help="run dir for tb")
-parser.add_argument('--no-use-skip-connections', action='store_true')
-parser.add_argument('--base-filter-size', type=int, default=16)
+parser.add_argument('--patch-fraction', type=int, default=2, help=' ')
+parser.add_argument('--batch-size', type=int, default=32, help=' ')
+parser.add_argument('--learning-rate', type=float, default=0.001, help=' ')
+parser.add_argument('--run', type=str, required=True, help="run dir for tb & ckpts")
+parser.add_argument('--no-use-skip-connections', action='store_true', help='set to disable skip connections')
+parser.add_argument('--base-filter-size', type=int, default=16, help=' ')
 parser.add_argument('--flip-left-right', action='store_true')
-parser.add_argument('--steps', type=int, default=1000, help='number of steps (test, summaries every 100)')
+parser.add_argument('--steps', type=int, default=100000, help='number of steps (test, summaries every 100)')
+parser.add_argument('--label-db', type=str, default='label.db', help='label_db to use')
 opts = parser.parse_args()
 print("opts %s" % opts, file=sys.stderr)
   
@@ -33,13 +34,15 @@ train_imgs, train_xys_bitmaps = data.img_xys_iterator(base_dir=opts.train_image_
                                                       patch_fraction=opts.patch_fraction,
                                                       distort_rgb=True,
                                                       flip_left_right=opts.flip_left_right,
-                                                      repeat=True)
+                                                      repeat=True,
+                                                      label_db=opts.label_db)
 test_imgs, test_xys_bitmaps = data.img_xys_iterator(base_dir=opts.test_image_dir,
                                                     batch_size=1,
                                                     patch_fraction=1,
                                                     distort_rgb=False,
                                                     flip_left_right=False,
-                                                    repeat=True)
+                                                    repeat=True,
+                                                    label_db=opts.label_db)
 print(test_imgs.get_shape())
 print(test_xys_bitmaps.get_shape())
 
