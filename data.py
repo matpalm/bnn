@@ -93,7 +93,7 @@ def img_filename_iterator(base_dir):
   dataset = tf.data.Dataset.from_tensor_slices((tf.constant(full_path_filenames),
                                                 tf.constant(filenames)))
   dataset = dataset.map(decode_image, num_parallel_calls=8)
-  return dataset.batch(1).prefetch(1).make_one_shot_iterator().get_next()
+  return dataset.batch(1).prefetch(2).make_one_shot_iterator().get_next()
 
 def xys_to_bitmap(xys, height, width, rescale=1.0):
   # note: include trailing 1 dim to easier match model output

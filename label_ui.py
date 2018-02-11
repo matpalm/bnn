@@ -10,13 +10,16 @@ from label_db import LabelDB
 import re
 
 class LabelUI():
-  def __init__(self, label_db_filename, img_dir):
+  def __init__(self, label_db_filename, img_dir, sort=True):
     
     # what images to review?
     # note: drop trailing / in dir name (if present)
-    self.img_dir = re.sub("/$", "", img_dir)  
-    self.files = sorted(os.listdir(img_dir))
-#    random.shuffle(self.files)
+    self.img_dir = re.sub("/$", "", img_dir)
+    self.files = os.listdir(img_dir)
+    if sort:
+      self.files = sorted(self.files)
+    else:
+      random.shuffle(self.files)
     print("%d files to review" % len(self.files))
 
     # label db
@@ -150,6 +153,7 @@ import argparse
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--image-dir', type=str, required=True)
 parser.add_argument('--label-db', type=str, required=True)
+parser.add_argument('--no-sort', action='store_true')
 opts = parser.parse_args() 
 
-LabelUI(opts.label_db, opts.image_dir)
+LabelUI(opts.label_db, opts.image_dir, sort=not opts.no_sort)

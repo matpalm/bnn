@@ -16,7 +16,7 @@ import util as u
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--image-dir', type=str, required=True)
-parser.add_argument('--label-db', type=str, required=True)
+parser.add_argument('--output-label-db', type=str, required=True)
 parser.add_argument('--run', type=str, required=True, help='model')
 parser.add_argument('--no-use-skip-connections', action='store_true')
 parser.add_argument('--no-use-batch-norm', action='store_true')
@@ -35,8 +35,10 @@ with tf.variable_scope("train_test_model") as scope:  # clumsy :/
 sess = tf.Session()
 model.restore(sess, "ckpts/%s" % opts.run)
 
-db = LabelDB(label_db_file=opts.label_db)
+db = LabelDB(label_db_file=opts.output_label_db)
 db.create_if_required()
+
+# TODO: make this batched to speed it up for larger runs
 
 for idx in itertools.count():
   try:
