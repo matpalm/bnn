@@ -26,10 +26,10 @@ def img_xys_iterator(base_dir, batch_size, patch_fraction, distort_rgb, flip_lef
     # keep track of filename
     filenames.append("%s/%s" % (base_dir, fname))
     # keep track of labels bitmap
-    label_bitmaps.append(xys_to_bitmap(xys=label_db.get_labels(fname),
-                                       height=h,
-                                       width=w,
-                                       rescale=0.5))
+    label_bitmaps.append(u.xys_to_bitmap(xys=label_db.get_labels(fname),
+                                         height=h,
+                                         width=w,
+                                         rescale=0.5))
 
   def decode_image(filename, bitmap):
     image = tf.image.decode_image(tf.read_file(filename))
@@ -95,17 +95,12 @@ def img_filename_iterator(base_dir):
   dataset = dataset.map(decode_image, num_parallel_calls=8)
   return dataset.batch(1).prefetch(2).make_one_shot_iterator().get_next()
 
-def xys_to_bitmap(xys, height, width, rescale=1.0):
-  # note: include trailing 1 dim to easier match model output
-  bitmap = np.zeros((int(height*rescale), int(width*rescale), 1), dtype=np.float32)
-  for x, y in xys:
-    bitmap[int(y*rescale), int(x*rescale), 0] = 1.0  # recall images are (height, width)
-  return bitmap
   
 if __name__ == "__main__":
   import argparse
   parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
   parser.add_argument('--image-dir', type=str, default="images/sample_originals/train")
+  parser.add_argument('--label-db', type=str, default="label.db")
   parser.add_argument('--batch-size', type=int, default=4)
   parser.add_argument('--patch-fraction', type=int, default=1,
                       help="what fraction of image to use as patch. 1 => no patch")
@@ -122,7 +117,8 @@ if __name__ == "__main__":
                                 patch_fraction=opts.patch_fraction,
                                 distort_rgb=opts.distort,
                                 flip_left_right=opts.distort,
-                                repeat=True)
+                                repeat=True,
+                                label_db=opts.label_db)
 
   for b in range(3):
     print(">batch", b)

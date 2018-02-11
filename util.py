@@ -5,6 +5,13 @@ import data
 import numpy as np
 import tensorflow as tf
 
+def xys_to_bitmap(xys, height, width, rescale=1.0):
+  # note: include trailing 1 dim to easier match model output
+  bitmap = np.zeros((int(height*rescale), int(width*rescale), 1), dtype=np.float32)
+  for x, y in xys:
+    bitmap[int(y*rescale), int(x*rescale), 0] = 1.0  # recall images are (height, width)
+  return bitmap
+
 def debug_img(i, bm, o):
   # create a debug image with three columns; 1) original RGB. 2) black/white
   # bitmap of labels 3) black/white bitmap of predictions
