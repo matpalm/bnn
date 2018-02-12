@@ -1,7 +1,6 @@
 from PIL import Image, ImageDraw
 from skimage import measure
 import StringIO
-import data
 import numpy as np
 import tensorflow as tf
 
@@ -91,6 +90,12 @@ def bitmap_to_pil_image(bitmap):
   rgb_array[:,:,1] = single_channel
   rgb_array[:,:,2] = single_channel
   return Image.fromarray(rgb_array)
+
+def bitmap_to_single_channel_pil_image(bitmap):
+  h, w, c = bitmap.shape
+  assert c == 1
+  bitmap = np.uint8(bitmap[:,:,0] * 255)
+  return Image.fromarray(bitmap, mode='L')  # L => (8-bit pixels, black and white)
 
 def side_by_side(rgb, bitmap):
   h, w, _ = rgb.shape

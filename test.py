@@ -16,23 +16,23 @@ import util as u
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--image-dir', type=str, required=True)
+parser.add_argument('--label-dir', type=str, required=True)
 parser.add_argument('--run', type=str, required=True, help='model')
 parser.add_argument('--batch-size', type=int, default=1)
 parser.add_argument('--no-use-skip-connections', action='store_true')
 parser.add_argument('--no-use-batch-norm', action='store_true')
 parser.add_argument('--base-filter-size', type=int, default=16)
-parser.add_argument('--label-db', type=str, default='label.db', help='label_db to use')
 opts = parser.parse_args()
 print(opts)
 
 # test data reader
-test_imgs, test_xys_bitmaps = data.img_xys_iterator(base_dir=opts.image_dir,
+test_imgs, test_xys_bitmaps = data.img_xys_iterator(image_dir=opts.image_dir,
+                                                    label_dir=opts.label_dir,
                                                     batch_size=opts.batch_size,
                                                     patch_fraction=1,
                                                     distort_rgb=False,
                                                     flip_left_right=False,
-                                                    repeat=False,
-                                                    label_db=opts.label_db)
+                                                    repeat=False)
 
 with tf.variable_scope("train_test_model") as scope:  # clumsy :/
   model = model.Model(test_imgs,

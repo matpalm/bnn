@@ -11,30 +11,27 @@ import random
 import tensorflow as tf
 import util as u
 
-def img_xys_iterator(base_dir, batch_size, patch_fraction, distort_rgb, flip_left_right, repeat,
-                     label_db='label.db'):
+def img_xys_iterator(image_dir, label_dir, batch_size, patch_fraction, distort_rgb, flip_left_right, repeat):
   # return dataset of (image, xys_bitmap) for training
 
-  label_db = LabelDB(label_db_file=label_db, check_same_thread=False)
+  # materialise list of rgb filenames and corresponding numpy bitmaps
+  # (lazy load actual image from filenames as required, but with caching)
+  rgb_filenames = []     # (H, W, 3) jpgs
+  bitmap_filenames = []  # (H/2, W/2, 1) pngs
 
-  # materialise list of filenames and all labels
-  # (lazy load actual image from filename as required, but with caching)
-  filenames = []
-  label_bitmaps = []
-  w, h = 768, 1024
-  for fname in sorted(os.listdir(base_dir)):
-    # keep track of filename
-    filenames.append("%s/%s" % (base_dir, fname))
-    # keep track of labels bitmap
-    label_bitmaps.append(u.xys_to_bitmap(xys=label_db.get_labels(fname),
-                                         height=h,
-                                         width=w,
-                                         rescale=0.5))
+  fnames = os.listdir(image_dir)
+  random.shuffle(fnames)
+  for fname in fnames:
+    rgb_filenames.append("%s/%s" % (image_dir, fname))
+    bitmap_filenames.append("%s/%s" % (label_dir, fname.replace(".jpg", ".png")))
 
-  def decode_image(filename, bitmap):
-    image = tf.image.decode_image(tf.read_file(filename))
-    image = tf.reshape(image, (h, w, 3))  # only required for debugging?
-    return image, bitmap
+  def decode_images(rgb_filename, bitmap_filename, w=768, h=1024):
+    rgb = tf.image.decode_image(tf.read_file(rgb_filename))
+    rgb = tf.reshape(rgb, (h, w, 3))
+    bitmap = tf.image.decode_image(tf.read_file(bitmap_filename))
+    bitmap = tf.image.convert_image_dtype(bitmap, dtype=tf.float32)  # required since 'L' format
+    bitmap = tf.reshape(bitmap, (h/2, w/2, 1))
+    return rgb, bitmap
 
   def random_flip_left_right(rgb, bitmap):
     random = tf.random_uniform([], 0, 1, dtype=tf.float32)
@@ -43,9 +40,8 @@ def img_xys_iterator(base_dir, batch_size, patch_fraction, distort_rgb, flip_lef
                    lambda: (tf.image.flip_left_right(rgb),
                             tf.image.flip_left_right(bitmap)))
   
-  def random_crop(rgb, bitmap):
-    # we want to use the same crop for both RGB input and bitmap label
-    # but the bitmap is half res
+  def random_crop(rgb, bitmap, w=768, h=1024):
+    # we want to use the same crop for both RGB input and bitmap labels
     pw, ph = w / patch_fraction, h / patch_fraction
     offset_height = tf.random_uniform([], 0, h-ph, dtype=tf.int32)
     offset_width = tf.random_uniform([], 0, w-pw, dtype=tf.int32)
@@ -61,11 +57,12 @@ def img_xys_iterator(base_dir, batch_size, patch_fraction, distort_rgb, flip_lef
 #    rgb = tf.image.per_image_standardization(rgb)
     return rgb, bitmap
 
-  dataset = tf.data.Dataset.from_tensor_slices((tf.constant(filenames),
-                                                np.stack(label_bitmaps)))  
-  dataset = dataset.map(decode_image, num_parallel_calls=8)  
+  dataset = tf.data.Dataset.from_tensor_slices((tf.constant(rgb_filenames),
+                                                tf.constant(bitmap_filenames)))
+  dataset = dataset.map(decode_images, num_parallel_calls=8)
   if repeat:
-    dataset = dataset.cache().shuffle(50).repeat()
+#    dataset = dataset.cache().shuffle(50).repeat()
+    dataset = dataset.shuffle(50).repeat()
   if patch_fraction > 1:
     dataset = dataset.map(random_crop, num_parallel_calls=8)
   if flip_left_right:
@@ -99,7 +96,10 @@ def img_filename_iterator(base_dir):
 if __name__ == "__main__":
   import argparse
   parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-  parser.add_argument('--image-dir', type=str, default="images/sample_originals/train")
+  parser.add_argument('--image-dir', type=str, default='images/sample_originals/train',
+                      help='location of .png input images')
+  parser.add_argument('--label-dir', type=str, default='images/sample_originals/train',
+                      help='location of corresponding .npy label files')
   parser.add_argument('--label-db', type=str, default="label.db")
   parser.add_argument('--batch-size', type=int, default=4)
   parser.add_argument('--patch-fraction', type=int, default=1,
@@ -112,13 +112,13 @@ if __name__ == "__main__":
 
   sess = tf.Session()
   
-  imgs, xyss = img_xys_iterator(base_dir=opts.image_dir,
+  imgs, xyss = img_xys_iterator(image_dir=opts.image_dir,
+                                label_dir=opts.label_dir,
                                 batch_size=opts.batch_size,
                                 patch_fraction=opts.patch_fraction,
                                 distort_rgb=opts.distort,
                                 flip_left_right=opts.distort,
-                                repeat=True,
-                                label_db=opts.label_db)
+                                repeat=True)
 
   for b in range(3):
     print(">batch", b)
