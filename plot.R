@@ -1,15 +1,8 @@
 library(ggplot2)
 library(lubridate)
 
-df1 = read.delim("/home/mat/dev/bnn2/20180204.out", h=F,
-                 col.names=c("idx", "img_name", "l_min", "l_max", "count"))
-df2 = read.delim("/home/mat/dev/bnn2/20180205.out", h=F,
-                 col.names=c("idx", "img_name", "l_min", "l_max", "count"))
-df3 = read.delim("/home/mat/dev/bnn2/20180206.out", h=F,
-                 col.names=c("idx", "img_name", "l_min", "l_max", "count"))
-df = rbind(df1, df2, df3)
-df$l_min = NULL
-df$l_max = NULL
+df = read.delim("/home/mat/dev/bnn2/predict.out", h=F,
+                col.names=c("idx", "img_name", "count"))
 df$idx = NULL
 head(df)
 
