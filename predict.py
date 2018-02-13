@@ -16,10 +16,11 @@ import util as u
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--image-dir', type=str, required=True)
-parser.add_argument('--output-label-db', type=str, required=True)
+parser.add_argument('--output-label-db', type=str, default=None, help='if not set dont write label_db')
 parser.add_argument('--run', type=str, required=True, help='model')
 parser.add_argument('--no-use-skip-connections', action='store_true')
 parser.add_argument('--no-use-batch-norm', action='store_true')
+#parser.add_argument('--export-pngs', action='store_true')
 parser.add_argument('--base-filter-size', type=int, default=16)
 opts = parser.parse_args()
 
@@ -35,32 +36,39 @@ with tf.variable_scope("train_test_model") as scope:  # clumsy :/
 sess = tf.Session()
 model.restore(sess, "ckpts/%s" % opts.run)
 
-db = LabelDB(label_db_file=opts.output_label_db)
-db.create_if_required()
-
+if opts.output_label_db:
+  db = LabelDB(label_db_file=opts.output_label_db)
+  db.create_if_required()
+else:
+  db = None
+  
 # TODO: make this batched to speed it up for larger runs
 
 for idx in itertools.count():
   try:
-    fn, logits, o = sess.run([test_filenames, model.logits, model.output])
+    fn, o = sess.run([test_filenames, model.output])
 
+    #img = img[0]
     prediction = o[0]
 
     # calc [(x,y), ...] centroids
     centroids = u.centroids_of_connected_components(prediction, rescale=2.0)
 
-    print("\t".join(map(str, [idx, fn[0], np.min(logits), np.max(logits), len(centroids)])))
+    print("\t".join(map(str, [idx, fn[0], len(centroids)])))
 
-    # turn these into a bitmap
-    # recall! centroids are in half res
-#    h, w, _ = img.shape
-#    centroids_bitmap = u.bitmap_from_centroids(centroids, h, w)
-    # save rgb / bitmap side by side
-#    debug_img = u.side_by_side(rgb=img, bitmap=centroids_bitmap)
-#    debug_img.save("example_%03d.png" % idx)
+    if False: #opts.export_pngs:
+      # turn these into a bitmap
+      # recall! centroids are in half res
+      h, w, _ = img.shape
+      centroids_bitmap = u.bitmap_from_centroids(centroids, h, w)
+      # save rgb / bitmap side by side
+#      debug_img = u.side_by_side(rgb=img, bitmap=prediction) #centroids_bitmap)
+      debug_img = u.side_by_side(rgb=img, bitmap=centroids_bitmap)
+      debug_img.save("predict_example_%03d.png" % idx)
 
     # set new labels
-    db.set_labels(fn[0], centroids, flip=True)
+    if db:
+      db.set_labels(fn[0], centroids, flip=True)
   
   except tf.errors.OutOfRangeError:
     # end of iterator
