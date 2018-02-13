@@ -29,7 +29,8 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_fraction, distort_r
     rgb = tf.image.decode_image(tf.read_file(rgb_filename))
     rgb = tf.reshape(rgb, (h, w, 3))
     bitmap = tf.image.decode_image(tf.read_file(bitmap_filename))
-    bitmap = tf.image.convert_image_dtype(bitmap, dtype=tf.float32)  # required since 'L' format
+    # TODO do this conversion at same time as for RGB
+    bitmap = tf.image.convert_image_dtype(bitmap, dtype=tf.float32)  
     bitmap = tf.reshape(bitmap, (h/2, w/2, 1))
     return rgb, bitmap
 
@@ -96,11 +97,10 @@ def img_filename_iterator(base_dir):
 if __name__ == "__main__":
   import argparse
   parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-  parser.add_argument('--image-dir', type=str, default='images/sample_originals/train',
-                      help='location of .png input images')
-  parser.add_argument('--label-dir', type=str, default='images/sample_originals/train',
-                      help='location of corresponding .npy label files')
-  parser.add_argument('--label-db', type=str, default="label.db")
+  parser.add_argument('--image-dir', type=str, default='images/201802_sample/training',
+                      help='location of RGB input images')
+  parser.add_argument('--label-dir', type=str, default='labels/201802_sample',
+                      help='location of corresponding L label files')
   parser.add_argument('--batch-size', type=int, default=4)
   parser.add_argument('--patch-fraction', type=int, default=1,
                       help="what fraction of image to use as patch. 1 => no patch")
@@ -117,7 +117,7 @@ if __name__ == "__main__":
                                 batch_size=opts.batch_size,
                                 patch_fraction=opts.patch_fraction,
                                 distort_rgb=opts.distort,
-                                flip_left_right=opts.distort,
+                                flip_left_right=False,
                                 repeat=True)
 
   for b in range(3):
