@@ -51,8 +51,7 @@ class Model(object):
 
     # record bottlenecked shape for resizing back
     # this is clumsy, how to do this more directly from tensors / config?
-    shape = e4.get_shape().as_list()[1:]
-    h, w = shape[0], shape[1]
+    _batch_size, h, w, _depth = e4.get_shape().as_list()
     
     model = tf.image.resize_nearest_neighbor(e4, [h*2, w*2])
     model = slim.conv2d(model, num_outputs=4*base_filter_size, kernel_size=3, scope='d1')
