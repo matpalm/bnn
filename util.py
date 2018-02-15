@@ -4,6 +4,17 @@ import StringIO
 import numpy as np
 import tensorflow as tf
 
+def hms(secs):
+  secs = int(secs)
+  mins, secs = divmod(secs, 60)
+  hrs, mins = divmod(mins, 60)
+  if hrs > 0:
+    return "%d:%02d:%02d" % (hrs, mins, secs)
+  elif mins > 0:
+    return "%02d:%02d" % (mins, secs)
+  else:
+    return "%02d" % secs
+
 def xys_to_bitmap(xys, height, width, rescale=1.0):
   # note: include trailing 1 dim to easier match model output
   bitmap = np.zeros((int(height*rescale), int(width*rescale), 1), dtype=np.float32)

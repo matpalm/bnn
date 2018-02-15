@@ -10,6 +10,7 @@ import sys
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 import util as u
+import time
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--train-image-dir', type=str, default="images/201802_sample/training", help="training images")
@@ -23,7 +24,8 @@ parser.add_argument('--no-use-skip-connections', action='store_true', help='set 
 parser.add_argument('--no-use-batch-norm', action='store_true', help='set to disable batch norm')
 parser.add_argument('--base-filter-size', type=int, default=16, help=' ')
 parser.add_argument('--flip-left-right', action='store_true')
-parser.add_argument('--steps', type=int, default=100000, help='number of steps (test, summaries every 100)')
+parser.add_argument('--steps', type=int, default=100000, help='max number of steps (test, summaries every 100)')
+parser.add_argument('--secs', type=int, default=None, help='If set, max number of seconds to run.')
 opts = parser.parse_args()
 print("opts %s" % opts, file=sys.stderr)
   
@@ -89,18 +91,16 @@ sess.run(tf.global_variables_initializer())
 train_summaries_writer = tf.summary.FileWriter("tb/%s/training" % opts.run, sess.graph)
 test_summaries_writer = tf.summary.FileWriter("tb/%s/test" % opts.run, sess.graph)
 
-import time
-
 INNER_STEPS = 100  # TODO: better name :/
+start_time = time.time()
 for idx in range(opts.steps / INNER_STEPS):
   # train a bit.
-  start_time = time.time()
   for _ in range(INNER_STEPS):
     _, xl, dl = sess.run([train_op, train_model.xent_loss, train_model.dice_loss])
-  training_time = time.time() - start_time
-  print("idx %d/%d\txent_loss %f\tdice_loss %f\ttime %f" % (idx, opts.steps / INNER_STEPS,
-                                                            xl, dl, training_time))
-    
+  print("idx %d/%d\ttime %d\txent_loss %f\tdice_loss %f" % (idx, opts.steps / INNER_STEPS,
+                                                            int(time.time()-start_time),
+                                                            xl, dl))
+
   # train / test summaries
   # includes loss summaries as well as a hand rolled debug image
   # ...train
@@ -127,3 +127,10 @@ for idx in range(opts.steps / INNER_STEPS):
 
   # save checkpoint
   train_model.save(sess, "ckpts/%s" % opts.run)
+
+  # check max time to run (if set)
+  if opts.secs is not None:
+    run_time = time.time() - start_time
+    remaining_time = opts.secs - run_time
+    print("run_time %s remaining_time %s" % (u.hms(run_time), u.hms(remaining_time)))
+    if remaining_time < 0: break
