@@ -1,6 +1,6 @@
 from PIL import Image, ImageDraw
 from skimage import measure
-import StringIO
+import io
 import numpy as np
 import tensorflow as tf
 
@@ -48,7 +48,7 @@ def explicit_loss_summary(xent_loss, dice_loss):
 
 def pil_image_to_tf_summary(img):
   # serialise png bytes
-  sio = StringIO.StringIO()
+  sio = io.BytesIO()
   img.save(sio, format="png")
   png_bytes = sio.getvalue()
   

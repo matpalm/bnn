@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-from __future__ import print_function
+#!/usr/bin/env python3
 
 import argparse
 from sklearn.metrics import confusion_matrix
@@ -93,7 +92,7 @@ test_summaries_writer = tf.summary.FileWriter("tb/%s/test" % opts.run, sess.grap
 
 INNER_STEPS = 100  # TODO: better name :/
 start_time = time.time()
-for idx in range(opts.steps / INNER_STEPS):
+for idx in range(opts.steps // INNER_STEPS):
   # train a bit.
   for _ in range(INNER_STEPS):
     _, xl, dl = sess.run([train_op, train_model.xent_loss, train_model.dice_loss])

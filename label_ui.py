@@ -1,7 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-from __future__ import print_function
-import Tkinter as tk
+import tkinter as tk
 from PIL import Image, ImageTk, ImageDraw
 import os
 import sqlite3

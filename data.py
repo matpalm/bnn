@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-from __future__ import print_function
+#!/usr/bin/env python3
 
 from PIL import Image, ImageDraw, ImageEnhance
 from functools import partial
@@ -31,7 +30,7 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_fraction, distort_r
     bitmap = tf.image.decode_image(tf.read_file(bitmap_filename))
     # TODO do this conversion at same time as for RGB
     bitmap = tf.image.convert_image_dtype(bitmap, dtype=tf.float32)  
-    bitmap = tf.reshape(bitmap, (h/2, w/2, 1))
+    bitmap = tf.reshape(bitmap, (h//2, w//2, 1))
     return rgb, bitmap
 
   def random_flip_left_right(rgb, bitmap):
@@ -43,11 +42,11 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_fraction, distort_r
   
   def random_crop(rgb, bitmap, w=768, h=1024):
     # we want to use the same crop for both RGB input and bitmap labels
-    pw, ph = w / patch_fraction, h / patch_fraction
+    pw, ph = w // patch_fraction, h // patch_fraction
     offset_height = tf.random_uniform([], 0, h-ph, dtype=tf.int32)
     offset_width = tf.random_uniform([], 0, w-pw, dtype=tf.int32)
     rgb = tf.image.crop_to_bounding_box(rgb, offset_height, offset_width, ph, pw)
-    bitmap = tf.image.crop_to_bounding_box(bitmap, offset_height/2, offset_width/2, ph/2, pw/2)
+    bitmap = tf.image.crop_to_bounding_box(bitmap, offset_height // 2, offset_width // 2, ph // 2, pw // 2 )
     return rgb, bitmap
 
   def distort_rgb(rgb, bitmap):
@@ -62,8 +61,8 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_fraction, distort_r
                                                 tf.constant(bitmap_filenames)))
   dataset = dataset.map(decode_images, num_parallel_calls=8)
   if repeat:
-#    dataset = dataset.cache().shuffle(50).repeat()
-    dataset = dataset.shuffle(50).repeat()
+    dataset = dataset.cache().shuffle(100).repeat()
+#    dataset = dataset.shuffle(50).repeat()
   if patch_fraction > 1:
     dataset = dataset.map(random_crop, num_parallel_calls=8)
   if flip_left_right:
