@@ -19,7 +19,7 @@ parser.add_argument('--output-label-db', type=str, default=None, help='if not se
 parser.add_argument('--run', type=str, required=True, help='model')
 parser.add_argument('--no-use-skip-connections', action='store_true')
 parser.add_argument('--no-use-batch-norm', action='store_true')
-#parser.add_argument('--export-pngs', action='store_true')
+parser.add_argument('--export-pngs', action='store_true')
 parser.add_argument('--base-filter-size', type=int, default=16)
 opts = parser.parse_args()
 
@@ -45,17 +45,22 @@ else:
 
 for idx in itertools.count():
   try:
-    fn, o = sess.run([test_filenames, model.output])
-
-    #img = img[0]
+    
+    if opts.export_pngs:
+      fn, img, o = sess.run([test_filenames, test_imgs, model.output])
+      img = img[0]
+    else:
+      fn, o = sess.run([test_filenames, model.output])
+      
+    fn = fn[0]
     prediction = o[0]
 
     # calc [(x,y), ...] centroids
     centroids = u.centroids_of_connected_components(prediction, rescale=2.0)
 
-    print("\t".join(map(str, [idx, fn[0], len(centroids)])))
+    print("\t".join(map(str, [idx, fn, len(centroids)])))
 
-    if False: #opts.export_pngs:
+    if opts.export_pngs:
       # turn these into a bitmap
       # recall! centroids are in half res
       h, w, _ = img.shape
@@ -67,7 +72,7 @@ for idx in itertools.count():
 
     # set new labels
     if db:
-      db.set_labels(fn[0], centroids, flip=True)
+      db.set_labels(fn, centroids, flip=True)
   
   except tf.errors.OutOfRangeError:
     # end of iterator
