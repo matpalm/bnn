@@ -23,7 +23,7 @@ parser.add_argument('--base-filter-size', type=int, default=16)
 opts = parser.parse_args()
 
 # feed data through an explicit placeholder to avoid using tf.data
-# which fails on rasp pi with .so problem :/ :/ :/
+# (i _thought_ for a bit this was the cause of the linker .os problem but it's something else...)
 imgs = tf.placeholder(dtype=tf.uint8, shape=(1, 1024, 768, 3))
 
 # test data reader
