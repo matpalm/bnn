@@ -22,28 +22,27 @@ parser.add_argument('--export-pngs', action='store_true')
 parser.add_argument('--base-filter-size', type=int, default=16)
 opts = parser.parse_args()
 
-# feed data through an explicit placeholder to avoid using tf.data
-# (i _thought_ for a bit this was the cause of the linker .os problem but it's something else...)
-imgs = tf.placeholder(dtype=tf.uint8, shape=(1, 1024, 768, 3), name='input_imgs')
+# restore frozen graph
+graph_def = tf.GraphDef()
+with open("bnn_graph.predict.frozen.pb", "rb") as f:
+  graph_def.ParseFromString(f.read())
+tf.import_graph_def(graph_def, name=None)
 
-# restore model
-with tf.variable_scope("train_test_model") as scope:  # clumsy :/
-  model = model.Model(imgs,
-                      is_training=False,
-                      use_skip_connections=not opts.no_use_skip_connections,
-                      base_filter_size=opts.base_filter_size,
-                      use_batch_norm=not opts.no_use_batch_norm)  
-sess = tf.Session()
-model.restore(sess, "ckpts/%s" % opts.run)
+# DEBUG, for dumping all op names
+#for op in tf.get_default_graph().get_operations():
+#  print(op.name)
+
+# decide input and output
+imgs_placeholder = tf.get_default_graph().get_tensor_by_name('import/input_imgs:0')
+model_output = tf.get_default_graph().get_tensor_by_name('import/train_test_model/output:0')
 
 if opts.output_label_db:
   db = LabelDB(label_db_file=opts.output_label_db)
   db.create_if_required()
 else:
   db = None
-  
-# TODO: make this batched to speed it up for larger runs
 
+sess = tf.Session()
 for idx, filename in enumerate(os.listdir(opts.image_dir)):
 
   # load next image (and add dummy batch dimension)
@@ -52,7 +51,7 @@ for idx, filename in enumerate(os.listdir(opts.image_dir)):
 
   try:
     # run single image through model
-    prediction = sess.run(model.output, feed_dict={model.imgs: imgs})[0]
+    prediction = sess.run(model_output, feed_dict={imgs_placeholder: imgs})[0]
 
     # calc [(x,y), ...] centroids
     centroids = u.centroids_of_connected_components(prediction, rescale=2.0)
@@ -74,7 +73,7 @@ for idx, filename in enumerate(os.listdir(opts.image_dir)):
       # set new labels (if requested)
     if db:
       db.set_labels(filename, centroids, flip=True)
-  
+
   except tf.errors.OutOfRangeError:
     # end of iterator
     break

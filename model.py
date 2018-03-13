@@ -90,7 +90,7 @@ class Model(object):
                               activation_fn=None)
     dump_shape_and_product_of('logits', self.logits)
 
-    self.output = tf.nn.sigmoid(self.logits)
+    self.output = tf.nn.sigmoid(self.logits, name='output')
 
     self.saver = tf.train.Saver(max_to_keep=100,
                                 keep_checkpoint_every_n_hours=1)
