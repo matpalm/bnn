@@ -25,7 +25,6 @@ class Model(object):
     model = tf.image.convert_image_dtype(self.imgs, dtype=tf.float32)
 
     # center from [0, 1] to [-1, 1]
-    # TODO: this is habit; do we need it?
     model = (model * 2) - 1
     dump_shape_and_product_of('input', model)
     

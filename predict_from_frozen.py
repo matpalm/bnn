@@ -8,6 +8,7 @@ import argparse
 import itertools
 import numpy as np
 import os
+import sys
 import tensorflow as tf
 import time
 import util as u
@@ -16,10 +17,10 @@ parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFo
 parser.add_argument('--image-dir', type=str, required=True)
 parser.add_argument('--output-label-db', type=str, default=None, help='if not set dont write label_db')
 parser.add_argument('--graph', type=str, default='bnn_graph.predict.frozen.pb', help='graph.pb to use')
-parser.add_argument('--run', type=str, required=True, help='model')
 parser.add_argument('--no-use-skip-connections', action='store_true')
 parser.add_argument('--no-use-batch-norm', action='store_true')
-parser.add_argument('--export-pngs', action='store_true')
+parser.add_argument('--export-pngs', default='',
+                    help='how, if at all, to export pngs {"", "predictions", "centroids"}')
 parser.add_argument('--base-filter-size', type=int, default=16)
 opts = parser.parse_args()
 
@@ -43,6 +44,9 @@ if opts.output_label_db:
 else:
   db = None
 
+prediction_times = []
+centroid_calc_times = []
+
 sess = tf.Session()
 for idx, filename in enumerate(os.listdir(opts.image_dir)):
 
@@ -50,32 +54,34 @@ for idx, filename in enumerate(os.listdir(opts.image_dir)):
   img = np.array(Image.open(opts.image_dir+"/"+filename))
   original_img = img.copy()
 #  img = img.astype(np.float32) / 255
-  imgs = np.expand_dims(img, 0)
+#  imgs = np.expand_dims(img, 0)
 
   try:
     # run single image through model
     s = time.time()
-    prediction = sess.run(model_output, feed_dict={imgs_placeholder: imgs})[0]
-    print("predict time", time.time()-s)
+    prediction = sess.run(model_output, feed_dict={imgs_placeholder: [img]})[0]
+    prediction_time = time.time() - s
+    prediction_times.append(prediction_time)
     
     # calc [(x,y), ...] centroids
+    s = time.time()
     centroids = u.centroids_of_connected_components(prediction, rescale=2.0)
+    centroid_calc_time = time.time() - s
+    centroid_calc_times.append(centroid_calc_time)
 
-    print("\t".join(map(str, [idx, filename, len(centroids)])))
+    print("\t".join(map(str, [idx, filename, len(centroids), prediction_time, centroid_calc_time])))
 
-    # export debug images (if requested)
-    if opts.export_pngs:
-      # turn these into a bitmap
-      # recall! centroids are in half res
-      # TODO: for centroids could draw red dots like in label_ui
-      h, w, _ = original_img.shape
-      centroids_bitmap = u.bitmap_from_centroids(centroids, h, w)
-      # save rgb / bitmap side by side
-#      debug_img = u.side_by_side(rgb=original_img, bitmap=prediction)
-      debug_img = u.side_by_side(rgb=original_img, bitmap=centroids_bitmap)
+    # export some debug image (if requested)
+    if opts.export_pngs != '':
+      if opts.export_pngs == 'predictions':
+        debug_img = u.side_by_side(rgb=original_img, bitmap=prediction)
+      elif opts.export_pngs == 'centroids':
+        debug_img = u.red_dots(rgb=original_img, centroids=centroids)
+      else:
+        raise Exception("unknown --export-pngs option")
       debug_img.save("predict_example_%03d.png" % idx)
 
-      # set new labels (if requested)
+    # set new labels (if requested)
     if db:
       db.set_labels(filename, centroids, flip=True)
 
@@ -83,4 +89,11 @@ for idx, filename in enumerate(os.listdir(opts.image_dir)):
     # end of iterator
     break
 
+print("prediction times (all) mu=%f std=%f" % (np.mean(prediction_times), np.std(prediction_times)),
+      file=sys.stderr)
+if len(prediction_times) > 2:
+  print("prediction times [2:]  mu=%f std=%f" % (np.mean(prediction_times[2:]), np.std(prediction_times[2:])),
+        file=sys.stderr)
+print("centroid calc times mu=%f std=%f" % (np.mean(centroid_calc_times), np.std(centroid_calc_times)),
+      file=sys.stderr)
 

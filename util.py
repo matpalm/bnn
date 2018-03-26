@@ -125,3 +125,10 @@ def side_by_side(rgb, bitmap):
   draw.polygon([0,0,w*2-1,0,w*2-1,h-1,0,h-1], outline='blue')
   draw.line([w,0,w,h], fill='blue')
   return canvas
+
+def red_dots(rgb, centroids):
+  img = Image.fromarray(rgb)
+  canvas = ImageDraw.Draw(img)
+  for y, x in centroids:  # recall: x/y flipped between db & pil
+    canvas.rectangle((x-2,y-2,x+2,y+2), fill='red')
+  return img
