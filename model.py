@@ -19,13 +19,8 @@ class Model(object):
                use_skip_connections=True, base_filter_size=16,
                use_batch_norm=True):
     self.imgs = imgs
+    model = imgs
 
-    # leave this conversion as late as possible to avoid storing floats in queue
-    # TODO: do we actually care?
-    model = tf.image.convert_image_dtype(self.imgs, dtype=tf.float32)
-
-    # center from [0, 1] to [-1, 1]
-    model = (model * 2) - 1
     dump_shape_and_product_of('input', model)
     
     e1 = slim.conv2d(model, num_outputs=base_filter_size, kernel_size=3, stride=2, scope='e1')

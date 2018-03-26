@@ -27,7 +27,7 @@ def debug_img(i, bm, o):
   # bitmap of labels 3) black/white bitmap of predictions
   _bs, h, w, _c = bm.shape
   canvas = Image.new('RGB', (w*3, h), (50, 50, 50))
-  i = Image.fromarray(i[0])
+  i = zero_centered_array_to_pil_image(i[0])
   i = i.resize((w, h))  
   canvas.paste(i, (0, 0))
   bm = bitmap_to_pil_image(bm[0])
@@ -92,7 +92,19 @@ def bitmap_from_centroids(centroids, h, w):
     bitmap[cx, cy] = 1.0
   return bitmap
 
+def zero_centered_array_to_pil_image(array):
+  assert array.dtype == np.float32
+  h, w, c = array.shape
+  assert c == 3
+  array += 1      # 0.0 -> 2.0
+  array *= 127.5  # 0.0 -> 255.0
+  array = array.astype(np.uint8)
+  assert np.min(array) >= 0
+  assert np.max(array) <= 255
+  return Image.fromarray(array)
+
 def bitmap_to_pil_image(bitmap):
+  assert bitmap.dtype == np.float32
   h, w, c = bitmap.shape
   assert c == 1
   rgb_array = np.zeros((h, w, 3), dtype=np.uint8)
@@ -103,6 +115,7 @@ def bitmap_to_pil_image(bitmap):
   return Image.fromarray(rgb_array)
 
 def bitmap_to_single_channel_pil_image(bitmap):
+  assert bitmap.dtype == np.float32
   h, w, c = bitmap.shape
   assert c == 1
   bitmap = np.uint8(bitmap[:,:,0] * 255)
@@ -112,7 +125,7 @@ def side_by_side(rgb, bitmap):
   h, w, _ = rgb.shape
   canvas = Image.new('RGB', (w*2, h), (50, 50, 50))
   # paste RGB on left hand side
-  lhs = Image.fromarray(rgb)
+  lhs = zero_centered_array_to_pil_image(rgb)
   canvas.paste(lhs, (0, 0))
   # paste bitmap version of labels on right hand side
   # black with white dots at labels
@@ -127,7 +140,7 @@ def side_by_side(rgb, bitmap):
   return canvas
 
 def red_dots(rgb, centroids):
-  img = Image.fromarray(rgb)
+  img = zero_centered_array_to_pil_image(rgb)
   canvas = ImageDraw.Draw(img)
   for y, x in centroids:  # recall: x/y flipped between db & pil
     canvas.rectangle((x-2,y-2,x+2,y+2), fill='red')

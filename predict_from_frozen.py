@@ -51,10 +51,9 @@ sess = tf.Session()
 for idx, filename in enumerate(os.listdir(opts.image_dir)):
 
   # load next image (and add dummy batch dimension)
-  img = np.array(Image.open(opts.image_dir+"/"+filename))
-  original_img = img.copy()
-#  img = img.astype(np.float32) / 255
-#  imgs = np.expand_dims(img, 0)
+  img = np.array(Image.open(opts.image_dir+"/"+filename))  # unit8 0->255
+  img = img.astype(np.float32)
+  img = (img / 127.5) - 1.0  # -1.0 -> 1.0  # see data.py
 
   try:
     # run single image through model
@@ -74,9 +73,9 @@ for idx, filename in enumerate(os.listdir(opts.image_dir)):
     # export some debug image (if requested)
     if opts.export_pngs != '':
       if opts.export_pngs == 'predictions':
-        debug_img = u.side_by_side(rgb=original_img, bitmap=prediction)
+        debug_img = u.side_by_side(rgb=img, bitmap=prediction)
       elif opts.export_pngs == 'centroids':
-        debug_img = u.red_dots(rgb=original_img, centroids=centroids)
+        debug_img = u.red_dots(rgb=img, centroids=centroids)
       else:
         raise Exception("unknown --export-pngs option")
       debug_img.save("predict_example_%03d.png" % idx)

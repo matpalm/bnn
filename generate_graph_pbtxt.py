@@ -14,7 +14,7 @@ parser.add_argument('--no-use-batch-norm', action='store_true')
 opts = parser.parse_args()
 
 # feed data through an explicit placeholder for frozen version
-imgs = tf.placeholder(dtype=tf.uint8, shape=(1, 1024, 768, 3), name='input_imgs')
+imgs = tf.placeholder(dtype=tf.float32, shape=(1, 1024, 768, 3), name='input_imgs')
 
 # restore model
 with tf.variable_scope("train_test_model") as scope:  # clumsy :/

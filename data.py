@@ -27,10 +27,12 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_fraction, distort_r
   def decode_images(rgb_filename, bitmap_filename, w=768, h=1024):
     rgb = tf.image.decode_image(tf.read_file(rgb_filename))
     rgb = tf.reshape(rgb, (h, w, 3))
+    rgb = tf.cast(rgb, tf.float32)
+    rgb = (rgb / 127.5) - 1.0  # -1.0 -> 1.0
     bitmap = tf.image.decode_image(tf.read_file(bitmap_filename))
-    # TODO do this conversion at same time as for RGB
-    bitmap = tf.image.convert_image_dtype(bitmap, dtype=tf.float32)  
     bitmap = tf.reshape(bitmap, (h//2, w//2, 1))
+    bitmap = tf.cast(bitmap, tf.float32)
+    bitmap /= 256  # 0 -> 1
     return rgb, bitmap
 
   def random_flip_left_right(rgb, bitmap):
@@ -49,12 +51,11 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_fraction, distort_r
     bitmap = tf.image.crop_to_bounding_box(bitmap, offset_height // 2, offset_width // 2, ph // 2, pw // 2 )
     return rgb, bitmap
 
-  def distort_rgb(rgb, bitmap):
+  def distort(rgb, bitmap):
     rgb = tf.image.random_brightness(rgb, 0.1)
     rgb = tf.image.random_contrast(rgb, 0.9, 1.1)
-    # TODO: work out how best to introduce this (since it's probably a good thing!)
-    #       without breaking everything to do with debugging images
-#    rgb = tf.image.per_image_standardization(rgb)
+#    rgb = tf.image.per_image_standardization(rgb)  # works great, but how to have it done for predict?
+    rgb = tf.clip_by_value(rgb, clip_value_min=-1.0, clip_value_max=1.0)
     return rgb, bitmap
 
   dataset = tf.data.Dataset.from_tensor_slices((tf.constant(rgb_filenames),
@@ -68,7 +69,7 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_fraction, distort_r
   if flip_left_right:
     dataset = dataset.map(random_flip_left_right, num_parallel_calls=8)
   if distort_rgb:
-    dataset = dataset.map(distort_rgb, num_parallel_calls=8)
+    dataset = dataset.map(distort, num_parallel_calls=8)
   return (dataset.
           batch(batch_size).
           prefetch(1).
