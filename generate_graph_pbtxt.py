@@ -7,7 +7,6 @@ import model
 import tensorflow as tf
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--run', type=str, required=True, help='model')
 parser.add_argument('--no-use-skip-connections', action='store_true')
 parser.add_argument('--base-filter-size', type=int, default=16)
 parser.add_argument('--no-use-batch-norm', action='store_true')
@@ -24,7 +23,6 @@ with tf.variable_scope("train_test_model") as scope:  # clumsy :/
                       base_filter_size=opts.base_filter_size,
                       use_batch_norm=not opts.no_use_batch_norm)
 sess = tf.Session()
-model.restore(sess, "ckpts/%s" % opts.run)
 
 # save graph def
 tf.train.write_graph(sess.graph_def, ".", "bnn_graph.predict.pbtxt")
