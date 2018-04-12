@@ -15,7 +15,7 @@ assert opts.from_db != opts.into_db
 
 from_db = LabelDB(label_db_file=opts.from_db)
 into_db = LabelDB(label_db_file=opts.into_db)
-      
+
 num_ignored = 0
 num_added = 0
 for img in from_db.imgs():

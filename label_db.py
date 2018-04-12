@@ -26,7 +26,7 @@ class LabelDB(object):
     c = self.conn.cursor()
     c.execute("select filename from imgs")
     return set(map(lambda f: f[0], c.fetchall()))
-    
+
   def has_labels(self, img):
     id = self._id_for_img(img)
     return id is not None
@@ -47,7 +47,7 @@ class LabelDB(object):
     else:
       self._delete_labels_for_img_id(img_id)
     self._add_rows_for_labels(img_id, labels, flip=flip)
-      
+
   def _id_for_img(self, img):
     c = self.conn.cursor()
     c.execute("select id from imgs where filename=?", (img,))
@@ -56,7 +56,7 @@ class LabelDB(object):
       return None
     else:
       return id[0]
-  
+
   def _create_row_for_img(self, img):
     c = self.conn.cursor()
     c.execute("insert into imgs (filename) values (?)", (img,))
@@ -79,7 +79,7 @@ class LabelDB(object):
       c.execute("insert into labels (img_id, x, y) values (?, ?, ?)", (img_id, x, y,))
     self.conn.commit()
 
-    
+
 if __name__ == "__main__":
   import argparse
   parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -88,5 +88,3 @@ if __name__ == "__main__":
   db = LabelDB(label_db_file=opts.label_db)
 #  db.create_if_required()
   print("#entries", len(db.imgs()))
-   
-                                  

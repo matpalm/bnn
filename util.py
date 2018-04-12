@@ -28,7 +28,7 @@ def debug_img(i, bm, o):
   _bs, h, w, _c = bm.shape
   canvas = Image.new('RGB', (w*3, h), (50, 50, 50))
   i = zero_centered_array_to_pil_image(i[0])
-  i = i.resize((w, h))  
+  i = i.resize((w, h))
   canvas.paste(i, (0, 0))
   bm = bitmap_to_pil_image(bm[0])
   canvas.paste(bm, (w, 0))
@@ -51,14 +51,14 @@ def pil_image_to_tf_summary(img):
   sio = io.BytesIO()
   img.save(sio, format="png")
   png_bytes = sio.getvalue()
-  
+
   # https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/framework/summary.proto
   return tf.Summary(value=[tf.Summary.Value(tag="debug_img",
                                             image=tf.Summary.Image(height=img.size[0],
                                                                    width=img.size[1],
                                                                    colorspace=3, # RGB
                                                                    encoded_image_string=png_bytes))])
-      
+
 def dice_loss(y, y_hat, batch_size, smoothing=0):
   y = tf.reshape(y, (batch_size, -1))
   y_hat = tf.reshape(y_hat, (batch_size, -1))

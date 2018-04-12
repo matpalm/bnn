@@ -68,7 +68,7 @@ class LabelUI():
 
   def remove_bee(self, rectangle_id):
     self.canvas.delete(rectangle_id)
-    
+
   def toggle_bees(self, e):
     if self.bees_on:
       # store x,y s in tmp list and delete all rectangles from canvas
@@ -106,7 +106,7 @@ class LabelUI():
     self.file_idx += 1
     if self.file_idx == len(self.files):
       print("Can't move to image past last image.")
-      self.file_idx = len(self.files) - 1      
+      self.file_idx = len(self.files) - 1
     self.display_new_image()
 
   def display_next_unlabelled_image(self, e=None):
@@ -120,7 +120,7 @@ class LabelUI():
       if not self.label_db.has_labels(self.files[self.file_idx]):
         break
     self.display_new_image()
-  
+
   def display_previous_image(self, e=None):
     if not self.bees_on:
       print("ignore move to previous image; bees not on")
@@ -129,16 +129,16 @@ class LabelUI():
     self.file_idx -= 1
     if self.file_idx < 0:
       print("Can't move to image previous to first image.")
-      self.file_idx = 0    
+      self.file_idx = 0
     self.display_new_image()
 
   def _flush_pending_x_y_to_boxes(self):
     # Flush existing points.
-    img_name = self.files[self.file_idx]    
+    img_name = self.files[self.file_idx]
     if len(self.x_y_to_boxes) > 0:
       self.label_db.set_labels(img_name, self.x_y_to_boxes.keys())
       self.x_y_to_boxes.clear()
-    
+
   def display_new_image(self):
     img_name = self.files[self.file_idx]
     # Display image (with filename added)
@@ -151,13 +151,13 @@ class LabelUI():
     existing_labels = self.label_db.get_labels(img_name)
     for x, y in existing_labels:
       self.add_bee_at(x, y)
-    
+
 
 import argparse
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--image-dir', type=str, required=True)
 parser.add_argument('--label-db', type=str, required=True)
 parser.add_argument('--no-sort', action='store_true')
-opts = parser.parse_args() 
+opts = parser.parse_args()
 
 LabelUI(opts.label_db, opts.image_dir, sort=not opts.no_sort)

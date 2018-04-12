@@ -27,7 +27,7 @@ parser.add_argument('--steps', type=int, default=100000, help='max number of ste
 parser.add_argument('--secs', type=int, default=None, help='If set, max number of seconds to run.')
 opts = parser.parse_args()
 print("opts %s" % opts, file=sys.stderr)
-  
+
 np.set_printoptions(precision=2, threshold=10000, suppress=True, linewidth=10000)
 
 # Build readers for train and test data.
@@ -61,7 +61,7 @@ with tf.variable_scope("train_test_model") as scope:
                                    batch_size=opts.batch_size)
 
 with tf.variable_scope("train_test_model", reuse=tf.AUTO_REUSE) as scope:
-  print("full res test model...")  
+  print("full res test model...")
   test_model = model.Model(test_imgs,
                            is_training=False,
                            use_skip_connections=not opts.no_use_skip_connections,
@@ -75,7 +75,7 @@ global_step = tf.train.get_or_create_global_step()
 optimiser = tf.train.AdamOptimizer(learning_rate=opts.learning_rate)
 
 # TODO: reinclude reg loss
-# regularisation_loss = tf.add_n(tf.losses.get_regularization_losses())  
+# regularisation_loss = tf.add_n(tf.losses.get_regularization_losses())
 train_op = slim.learning.create_train_op(total_loss = train_model.loss, # + regularisation_loss,
                                          optimizer = optimiser,
                                          summarize_gradients = False)
@@ -110,7 +110,7 @@ for idx in range(opts.steps // INNER_STEPS):
   print("train logits", logits.shape, np.min(logits), np.max(logits))
   train_summaries_writer.add_summary(u.explicit_loss_summary(xl, dl), step)
   debug_img_summary = u.pil_image_to_tf_summary(u.debug_img(i, bm, o))
-  train_summaries_writer.add_summary(debug_img_summary, step)  
+  train_summaries_writer.add_summary(debug_img_summary, step)
   train_summaries_writer.flush()
 
   # ... test

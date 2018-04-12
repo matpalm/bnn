@@ -61,7 +61,7 @@ for idx, filename in enumerate(os.listdir(opts.image_dir)):
     prediction = sess.run(model_output, feed_dict={imgs_placeholder: [img]})[0]
     prediction_time = time.time() - s
     prediction_times.append(prediction_time)
-    
+
     # calc [(x,y), ...] centroids
     s = time.time()
     centroids = u.centroids_of_connected_components(prediction, rescale=2.0)
@@ -95,4 +95,3 @@ if len(prediction_times) > 2:
         file=sys.stderr)
 print("centroid calc times mu=%f std=%f" % (np.mean(centroid_calc_times), np.std(centroid_calc_times)),
       file=sys.stderr)
-

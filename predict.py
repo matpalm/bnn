@@ -33,7 +33,7 @@ with tf.variable_scope("train_test_model") as scope:  # clumsy :/
                       is_training=False,
                       use_skip_connections=not opts.no_use_skip_connections,
                       base_filter_size=opts.base_filter_size,
-                      use_batch_norm=not opts.no_use_batch_norm)  
+                      use_batch_norm=not opts.no_use_batch_norm)
 sess = tf.Session()
 model.restore(sess, "ckpts/%s" % opts.run)
 
@@ -42,7 +42,7 @@ if opts.output_label_db:
   db.create_if_required()
 else:
   db = None
-  
+
 # TODO: make this batched to speed it up for larger runs
 
 for idx, filename in enumerate(os.listdir(opts.image_dir)):
@@ -74,9 +74,7 @@ for idx, filename in enumerate(os.listdir(opts.image_dir)):
     # set new labels (if requested)
     if db:
       db.set_labels(filename, centroids, flip=True)
-  
+
   except tf.errors.OutOfRangeError:
     # end of iterator
     break
-
-

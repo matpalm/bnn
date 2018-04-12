@@ -41,7 +41,7 @@ with tf.variable_scope("train_test_model") as scope:  # clumsy :/
                       use_batch_norm=not opts.no_use_batch_norm)
   model.calculate_losses_wrt(labels=test_xys_bitmaps,
                              batch_size=opts.batch_size)
-  
+
 sess = tf.Session()
 model.restore(sess, "ckpts/%s" % opts.run)
 
@@ -60,4 +60,3 @@ np.set_printoptions(precision=3, suppress=True)
 print("\t".join(["", "min", "max", "mean", "std"]))
 print("\t".join(map(str, ["dice", np.min(dice), np.max(dice), np.mean(dice), np.std(dice)])))
 print("\t".join(map(str, ["xent", np.min(xent), np.max(xent), np.mean(xent), np.std(xent)])))
-

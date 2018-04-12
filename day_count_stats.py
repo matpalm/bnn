@@ -29,12 +29,9 @@ for sub_dir in sorted(os.listdir(base_dir)):
       total_freq = 0
       for hour in hrs:
         freq = date_hour_freq[date][hour]
-        total_freq += freq        
+        total_freq += freq
         if freq == 0:
           sys.stdout.write(" %4s" % "")
         else:
           sys.stdout.write(" %4d" % date_hour_freq[date][hour])
-      sys.stdout.write(" %6d\n" % total_freq)        
-
-        
-
+      sys.stdout.write(" %6d\n" % total_freq)

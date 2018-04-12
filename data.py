@@ -41,7 +41,7 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_fraction, distort_r
                    lambda: (rgb, bitmap),
                    lambda: (tf.image.flip_left_right(rgb),
                             tf.image.flip_left_right(bitmap)))
-  
+
   def random_crop(rgb, bitmap, w=768, h=1024):
     # we want to use the same crop for both RGB input and bitmap labels
     pw, ph = w // patch_fraction, h // patch_fraction
@@ -78,7 +78,7 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_fraction, distort_r
 
 def img_filename_iterator(base_dir):
   # return dataset of (image, filename) for inference
-  
+
   # decide both local path filenames and full path for decoding
   filenames = sorted(os.listdir(base_dir))
   full_path_filenames = [ "%s/%s" % (base_dir, f) for f in filenames ]
@@ -93,7 +93,7 @@ def img_filename_iterator(base_dir):
   dataset = dataset.map(decode_image, num_parallel_calls=8)
   return dataset.batch(1).prefetch(2).make_one_shot_iterator().get_next()
 
-  
+
 if __name__ == "__main__":
   import argparse
   parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -107,11 +107,11 @@ if __name__ == "__main__":
   parser.add_argument('--distort', action='store_true')
   opts = parser.parse_args()
   print(opts)
-  
+
   from PIL import Image, ImageDraw
 
   sess = tf.Session()
-  
+
   imgs, xyss = img_xys_iterator(image_dir=opts.image_dir,
                                 label_dir=opts.label_dir,
                                 batch_size=opts.batch_size,
@@ -126,4 +126,3 @@ if __name__ == "__main__":
     for i, (img, xys) in enumerate(zip(img_batch, xys_batch)):
       print(">element", i)
       u.side_by_side(rgb=img, bitmap=xys).save("test_%03d_%03d.png" % (b, i))
-    
