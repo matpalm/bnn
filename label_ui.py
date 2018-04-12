@@ -10,7 +10,7 @@ import re
 
 class LabelUI():
   def __init__(self, label_db_filename, img_dir, sort=True):
-    
+
     # what images to review?
     # note: drop trailing / in dir name (if present)
     self.img_dir = re.sub("/$", "", img_dir)
@@ -29,9 +29,13 @@ class LabelUI():
     root = tk.Tk()
     root.title(label_db_filename)
     root.bind('<Right>', self.display_next_image)
-    root.bind('N', self.display_next_unlabelled_image)
+    print("RIGHT  next image")
     root.bind('<Left>', self.display_previous_image)
+    print("LEFT   previous image")
     root.bind('<Up>', self.toggle_bees)
+    print("UP     toggle labels")
+    root.bind('N', self.display_next_unlabelled_image)
+    print("N   next image with 0 labels")
     self.canvas = tk.Canvas(root, cursor='tcross')
     self.canvas.config(width=768, height=1024)
     self.canvas.bind('<Button-1>', self.add_bee_event)  # left mouse button
@@ -69,7 +73,7 @@ class LabelUI():
     if self.bees_on:
       # store x,y s in tmp list and delete all rectangles from canvas
       self.tmp_x_y = []
-      for (x, y), rectangle_id in self.x_y_to_boxes.iteritems():
+      for (x, y), rectangle_id in self.x_y_to_boxes.items():
         self.remove_bee(rectangle_id)
         self.tmp_x_y.append((x, y))
       self.x_y_to_boxes = {}
@@ -85,7 +89,8 @@ class LabelUI():
       print("ignore remove bee; bees not on")
       return
     if len(self.x_y_to_boxes) == 0: return
-    closest_point = closest_sqr_distance = None
+    closest_point = None
+    closest_sqr_distance = 0.0
     for x, y in self.x_y_to_boxes.keys():
       sqr_distance = (e.x-x)**2 + (e.y-y)**2
       if sqr_distance < closest_sqr_distance or closest_point is None:
