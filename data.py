@@ -10,7 +10,8 @@ import random
 import tensorflow as tf
 import util as u
 
-def img_xys_iterator(image_dir, label_dir, batch_size, patch_fraction, distort_rgb, flip_left_right, repeat):
+def img_xys_iterator(image_dir, label_dir, batch_size, patch_fraction, distort_rgb,
+                     flip_left_right, random_rotation, repeat):
   # return dataset of (image, xys_bitmap) for training
 
   # materialise list of rgb filenames and corresponding numpy bitmaps
@@ -58,18 +59,27 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_fraction, distort_r
     rgb = tf.clip_by_value(rgb, clip_value_min=-1.0, clip_value_max=1.0)
     return rgb, bitmap
 
+  def rotate(rgb, bitmap):
+    # we want to use the same crop for both RGB input and bitmap labels
+    random_rotation_angle = tf.random_uniform([], -0.4, 0.4, dtype=tf.float32)
+    return (tf.contrib.image.rotate(rgb, random_rotation_angle, 'BILINEAR'),
+            tf.contrib.image.rotate(bitmap, random_rotation_angle, 'BILINEAR'))
+
   dataset = tf.data.Dataset.from_tensor_slices((tf.constant(rgb_filenames),
                                                 tf.constant(bitmap_filenames)))
   dataset = dataset.map(decode_images, num_parallel_calls=8)
   if repeat:
+    # NOTE: can't cache for very large set (i.e. semi supervised set)
     dataset = dataset.cache().shuffle(100).repeat()
-#    dataset = dataset.shuffle(50).repeat()
+#    dataset = dataset.shuffle(100).repeat()
   if patch_fraction > 1:
     dataset = dataset.map(random_crop, num_parallel_calls=8)
   if flip_left_right:
     dataset = dataset.map(random_flip_left_right, num_parallel_calls=8)
   if distort_rgb:
     dataset = dataset.map(distort, num_parallel_calls=8)
+  if random_rotation:
+    dataset = dataset.map(rotate, num_parallel_calls=8)
   return (dataset.
           batch(batch_size).
           prefetch(1).
@@ -117,7 +127,8 @@ if __name__ == "__main__":
                                 batch_size=opts.batch_size,
                                 patch_fraction=opts.patch_fraction,
                                 distort_rgb=opts.distort,
-                                flip_left_right=False,
+                                flip_left_right=True,
+                                random_rotation=True,
                                 repeat=True)
 
   for b in range(3):

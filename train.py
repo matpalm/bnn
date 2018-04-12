@@ -21,9 +21,11 @@ parser.add_argument('--learning-rate', type=float, default=0.001, help=' ')
 parser.add_argument('--run', type=str, required=True, help="run dir for tb & ckpts")
 parser.add_argument('--no-use-skip-connections', action='store_true', help='set to disable skip connections')
 parser.add_argument('--no-use-batch-norm', action='store_true', help='set to disable batch norm')
-parser.add_argument('--base-filter-size', type=int, default=16, help=' ')
-parser.add_argument('--flip-left-right', action='store_true')
-parser.add_argument('--steps', type=int, default=100000, help='max number of steps (test, summaries every 100)')
+parser.add_argument('--base-filter-size', type=int, default=8, help=' ')
+parser.add_argument('--flip-left-right', action='store_true', help='randomly flip training egs left/right')
+parser.add_argument('--random-rotate', action='store_true', help='randomly rotate training images')
+parser.add_argument('--steps', type=int, default=100000, help='max number of steps (test, summaries every --train-steps)')
+parser.add_argument('--train-steps', type=int, default=100, help='number training steps between test and summaries')
 parser.add_argument('--secs', type=int, default=None, help='If set, max number of seconds to run.')
 opts = parser.parse_args()
 print("opts %s" % opts, file=sys.stderr)
@@ -37,6 +39,7 @@ train_imgs, train_xys_bitmaps = data.img_xys_iterator(image_dir=opts.train_image
                                                       patch_fraction=opts.patch_fraction,
                                                       distort_rgb=True,
                                                       flip_left_right=opts.flip_left_right,
+                                                      random_rotation=opts.random_rotate,
                                                       repeat=True)
 test_imgs, test_xys_bitmaps = data.img_xys_iterator(image_dir=opts.test_image_dir,
                                                     label_dir=opts.label_dir,
@@ -44,6 +47,7 @@ test_imgs, test_xys_bitmaps = data.img_xys_iterator(image_dir=opts.test_image_di
                                                     patch_fraction=1,
                                                     distort_rgb=False,
                                                     flip_left_right=False,
+                                                    random_rotation=False,
                                                     repeat=True)
 print(test_imgs.get_shape())
 print(test_xys_bitmaps.get_shape())
@@ -90,13 +94,12 @@ sess.run(tf.global_variables_initializer())
 train_summaries_writer = tf.summary.FileWriter("tb/%s/training" % opts.run, sess.graph)
 test_summaries_writer = tf.summary.FileWriter("tb/%s/test" % opts.run, sess.graph)
 
-INNER_STEPS = 100  # TODO: better name :/
 start_time = time.time()
-for idx in range(opts.steps // INNER_STEPS):
+for idx in range(opts.steps // opts.train_steps):
   # train a bit.
-  for _ in range(INNER_STEPS):
+  for _ in range(opts.train_steps):
     _, xl, dl = sess.run([train_op, train_model.xent_loss, train_model.dice_loss])
-  print("idx %d/%d\ttime %d\txent_loss %f\tdice_loss %f" % (idx, opts.steps / INNER_STEPS,
+  print("idx %d/%d\ttime %d\txent_loss %f\tdice_loss %f" % (idx, opts.steps // opts.train_steps,
                                                             int(time.time()-start_time),
                                                             xl, dl))
 
@@ -132,4 +135,4 @@ for idx in range(opts.steps // INNER_STEPS):
     run_time = time.time() - start_time
     remaining_time = opts.secs - run_time
     print("run_time %s remaining_time %s" % (u.hms(run_time), u.hms(remaining_time)))
-    if remaining_time < 0: break
+    if remaining_time < 0: exit()

@@ -5,6 +5,8 @@ import numpy as np
 import tensorflow as tf
 
 def hms(secs):
+  if secs < 0:
+    return "<0"  # clumsy
   secs = int(secs)
   mins, secs = divmod(secs, 60)
   hrs, mins = divmod(mins, 60)

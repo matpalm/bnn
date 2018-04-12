@@ -31,6 +31,7 @@ test_imgs, test_xys_bitmaps = data.img_xys_iterator(image_dir=opts.image_dir,
                                                     patch_fraction=1,
                                                     distort_rgb=False,
                                                     flip_left_right=False,
+                                                    random_rotation=False,
                                                     repeat=False)
 
 with tf.variable_scope("train_test_model") as scope:  # clumsy :/
