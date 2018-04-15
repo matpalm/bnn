@@ -100,7 +100,7 @@ def zero_centered_array_to_pil_image(array):
   assert c == 3
   array += 1      # 0.0 -> 2.0
   array *= 127.5  # 0.0 -> 255.0
-  array = array.astype(np.uint8)
+  array = array.copy().astype(np.uint8)
   assert np.min(array) >= 0
   assert np.max(array) <= 255
   return Image.fromarray(array)
