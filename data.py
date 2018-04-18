@@ -67,11 +67,15 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_fraction, distort_r
 
   dataset = tf.data.Dataset.from_tensor_slices((tf.constant(rgb_filenames),
                                                 tf.constant(bitmap_filenames)))
+
   dataset = dataset.map(decode_images, num_parallel_calls=8)
+
   if repeat:
-    # NOTE: can't cache for very large set (i.e. semi supervised set)
-    dataset = dataset.cache().shuffle(100).repeat()
-#    dataset = dataset.shuffle(100).repeat()
+    if len(rgb_filenames) < 1000:
+      dataset = dataset.cache()
+    print("len(rgb_filenames)", len(rgb_filenames), ("CACHE" if len(rgb_filenames) < 1000 else "NO CACHE"))
+    dataset = dataset.shuffle(1000).repeat()
+
   if patch_fraction > 1:
     dataset = dataset.map(random_crop, num_parallel_calls=8)
   if flip_left_right:
