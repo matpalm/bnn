@@ -3,6 +3,7 @@ from skimage import measure
 import io
 import numpy as np
 import tensorflow as tf
+import math
 
 def hms(secs):
   if secs < 0:
@@ -147,3 +148,47 @@ def red_dots(rgb, centroids):
   for y, x in centroids:  # recall: x/y flipped between db & pil
     canvas.rectangle((x-2,y-2,x+2,y+2), fill='red')
   return img
+
+def compare_sets(true_pts, predicted_pts):
+  # compare two sets of points (presumably true & predicted centroids)
+  # iteratively find closest point in each set and accumulative distance
+  # at end add arbitrary penalty for each point left in either set (e.g. sets
+  # not same size). normalise final value by size of originl true set
+
+  # record true set size for final normalisation
+  original_num_true_pts = len(true_pts)
+
+  # still a problem somewhere were centroid x/ys are being flipped :/
+  # need to hunt this DOWN!!! (see flip=True)
+  predicted_pts = [(y, x) for x, y in predicted_pts]
+
+  # since we're going to be mutating these lists (by removing points)
+  # let's explicitly record idxs alongside
+  # note: removal of points was the main idea to not use a 2d np array here
+  true_pts = list(enumerate(true_pts))
+  predicted_pts = list(enumerate(predicted_pts))
+
+  # iterate through pairs collecting sum of (sqrd) distances
+  # between closest points until one of the lists is empty
+  cumulative_distance = 0.0
+  while len(true_pts) > 0 and len(predicted_pts) > 0:
+    # find indexes of closest pair
+    closest_pair = None
+    closest_distance = None  # though, actually squared distance
+    for t_i, (_, t) in enumerate(true_pts):
+      for p_i, (_, p) in enumerate(predicted_pts):
+        distance = (t[0]-p[0])**2 + (t[1]-p[1])**2
+        if closest_distance is None or distance < closest_distance:
+          closest_pair = t_i, p_i
+          closest_distance = distance
+    # collect distance and delete points
+    cumulative_distance += math.sqrt(closest_distance)
+    t_i, p_i = closest_pair
+    del true_pts[t_i]
+    del predicted_pts[p_i]
+
+  # penalise each missing pair by a distance of (arbitrary) 100
+  cumulative_distance += 100 * (len(true_pts) + len(predicted_pts))
+
+  # normalise final return value by original number of true labels
+  return cumulative_distance / original_num_true_pts

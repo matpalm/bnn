@@ -21,6 +21,7 @@ parser.add_argument('--no-use-batch-norm', action='store_true')
 parser.add_argument('--export-pngs', default='',
                     help='how, if at all, to export pngs {"", "predictions", "centroids"}')
 parser.add_argument('--base-filter-size', type=int, default=16)
+parser.add_argument('--true-label-db', type=str, default=None, help='label for true values to compare to centroids')
 opts = parser.parse_args()
 
 # feed data through an explicit placeholder to avoid using tf.data
@@ -43,9 +44,14 @@ if opts.output_label_db:
 else:
   db = None
 
+if opts.true_label_db:
+  true_db = LabelDB(label_db_file=opts.true_label_db)
+else:
+  true_db = None
+
 # TODO: make this batched to speed it up for larger runs
 
-for idx, filename in enumerate(os.listdir(opts.image_dir)):
+for idx, filename in enumerate(sorted(os.listdir(opts.image_dir))):
 
   # load next image (and add dummy batch dimension)
   img = np.array(Image.open(opts.image_dir+"/"+filename))  # uint8 0->255
@@ -59,7 +65,14 @@ for idx, filename in enumerate(os.listdir(opts.image_dir)):
     # calc [(x,y), ...] centroids
     centroids = u.centroids_of_connected_components(prediction, rescale=2.0)
 
-    print("\t".join(map(str, [idx, filename, len(centroids)])))
+    pt_set_distance = 0.0
+    if true_db is not None:
+      true_centroids = true_db.get_labels(filename)
+      print("PREDICTED", centroids)
+      print("TRUE", true_centroids)
+      pt_set_distance = u.compare_sets(true_pts=true_centroids, predicted_pts=centroids)
+
+    print("\t".join(map(str, ["X", idx, filename, pt_set_distance, len(centroids)])))
 
     # export some debug image (if requested)
     if opts.export_pngs != '':
@@ -69,7 +82,7 @@ for idx, filename in enumerate(os.listdir(opts.image_dir)):
         debug_img = u.red_dots(rgb=img, centroids=centroids)
       else:
         raise Exception("unknown --export-pngs option")
-      debug_img.save("predict_example_%03d.png" % idx)
+      debug_img.save("predict_example_%s.png" % filename)
 
     # set new labels (if requested)
     if db:
