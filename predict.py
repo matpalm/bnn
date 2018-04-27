@@ -15,7 +15,7 @@ import util as u
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--image-dir', type=str, required=True)
 parser.add_argument('--output-label-db', type=str, default=None, help='if not set dont write label_db')
-parser.add_argument('--run', type=str, required=True, help='model')
+parser.add_argument('--run', type=str, required=True, help='model, also used as subdir for export-pngs')
 parser.add_argument('--no-use-skip-connections', action='store_true')
 parser.add_argument('--no-use-batch-norm', action='store_true')
 parser.add_argument('--export-pngs', default='',
@@ -48,6 +48,11 @@ if opts.true_label_db:
   true_db = LabelDB(label_db_file=opts.true_label_db)
 else:
   true_db = None
+
+if opts.export_pngs:
+  export_dir = "predict_examples_%s" % opts.run
+  if not os.path.exists(export_dir):
+    os.makedirs(export_dir)
 
 # TODO: make this batched to speed it up for larger runs
 
@@ -82,7 +87,7 @@ for idx, filename in enumerate(sorted(os.listdir(opts.image_dir))):
         debug_img = u.red_dots(rgb=img, centroids=centroids)
       else:
         raise Exception("unknown --export-pngs option")
-      debug_img.save("predict_example_%s.png" % filename)
+      debug_img.save("%s/%s.png" % (export_dir, filename))
 
     # set new labels (if requested)
     if db:
