@@ -9,3 +9,5 @@ or a [je vois embedded smart camera](http://jevois.org/)
 blog post coming soon......
 
 ![rgb_labels_predictions.png](rgb_labels_predictions.png)
+
+![counts_over_days.png](counts_over_days.png)
