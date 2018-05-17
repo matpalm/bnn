@@ -6,7 +6,8 @@ trained in a semi supervised way on a desktop gpu and deployed to run in real ti
 either a [raspberry pi](https://www.raspberrypi.org/) using a [neural compute stick](https://developer.movidius.com/)
 or a [je vois embedded smart camera](http://jevois.org/)
 
-blog post coming soon......
+see [this blog post](http://matpalm.com/blog/counting_bees/) for more info..
+
 
 here's an example of predicting bee position on some held out data. the majority of examples trained had ~10 bees per image.
 
