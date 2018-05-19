@@ -118,7 +118,6 @@ def bitmap_to_pil_image(bitmap):
   return Image.fromarray(rgb_array)
 
 def bitmap_to_single_channel_pil_image(bitmap):
-  assert bitmap.dtype == np.float32
   h, w, c = bitmap.shape
   assert c == 1
   bitmap = np.uint8(bitmap[:,:,0] * 255)
