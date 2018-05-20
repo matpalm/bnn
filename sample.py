@@ -32,7 +32,7 @@ if opts.prefix is not None:
 
 if len(src_files) < opts.n:
   raise Exception("requested sample of %d files from directory [%s] but there are only %d files there" %
-                  (opts.n, src_directory, len(from_files)))
+                  (opts.n, src_directory, len(src_files)))
 
 random.shuffle(src_files)
 for filename in src_files[:opts.n]:
