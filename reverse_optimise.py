@@ -8,8 +8,11 @@ from tensorflow.python.tools import inspect_checkpoint as ic
 import util as u
 from PIL import Image
 
-# setup random initial images
-initial_imgs = np.random.uniform(-1, 1, size=(64, 16, 16, 3)).astype(np.float32)
+# setup random initial images; 64 single colours
+initial_imgs = np.empty((64, 16, 16, 3), dtype=np.float32)
+for idx in range(64):
+  colour = np.random.uniform(-1, 1, size=(3))
+  initial_imgs[idx] = np.tile(colour, [16,16,1])
 imgs = tf.get_variable(name="imgs", dtype=tf.float32,
                        initializer=tf.constant(initial_imgs))
 
@@ -66,15 +69,17 @@ def dump_images(prefix):
       centroid_bitmap = u.bitmap_from_centroids(centroids, h=8, w=8)
       centroid_bitmap = u.bitmap_to_single_channel_pil_image(centroid_bitmap)
       centroids_collage.paste(centroid_bitmap, (9*x, 9*y))
-  img_collage.save("%s_imgs.png" % prefix)
-  bitmap_collage.save("%s_bitmaps.png" % prefix)
-  centroids_collage.save("%s_centroids.png" % prefix)
+  img_collage.save("images/ra/%s_imgs.png" % prefix)
+  bitmap_collage.save("images/ra/%s_bitmaps.png" % prefix)
+  centroids_collage.save("images/ra/%s_centroids.png" % prefix)
 
 dump_images("start")
 
-# run optimisation for a bit...
-for i in range(100000):
-  l, _ = sess.run([loss, train_op])
-  print(i, l)
-
-dump_images("end")
+n = 0
+while True:
+  # run optimisation for a bit...
+  for i in range(1000):
+    l, _ = sess.run([loss, train_op])
+    print(i, l)
+  dump_images("%03d" % n)
+  n += 1
