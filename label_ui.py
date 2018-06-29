@@ -14,6 +14,8 @@ class LabelUI():
     # what images to review?
     # note: drop trailing / in dir name (if present)
     self.img_dir = re.sub("/$", "", img_dir)
+    self.img_width = 820
+    self.img_height = 616
     self.files = os.listdir(img_dir)
     if sort:
       self.files = sorted(self.files)
@@ -36,10 +38,13 @@ class LabelUI():
     print("UP     toggle labels")
     root.bind('N', self.display_next_unlabelled_image)
     print("N   next image with 0 labels")
+    root.bind('Q', self.quit)  # right mouse button
+    print("Q   quit")
     self.canvas = tk.Canvas(root, cursor='tcross')
-    self.canvas.config(width=768, height=1024)
+    self.canvas.config(width=self.img_width, height=self.img_height)
     self.canvas.bind('<Button-1>', self.add_bee_event)  # left mouse button
     self.canvas.bind('<Button-3>', self.remove_closest_bee_event)  # right mouse button
+    
     self.canvas.pack()
 
     # A lookup table from bee x,y to any rectangles that have been drawn
@@ -55,6 +60,9 @@ class LabelUI():
     self.file_idx = 0
     self.display_new_image()
     root.mainloop()
+
+  def quit(self, e):
+   	exit()
 
   def add_bee_event(self, e):
     if not self.bees_on:
@@ -142,9 +150,10 @@ class LabelUI():
   def display_new_image(self):
     img_name = self.files[self.file_idx]
     # Display image (with filename added)
+    title = img_name + " " + str(self.file_idx) + " of " + str(len(self.files)-1)
     img = Image.open(self.img_dir + "/" + img_name)
     canvas = ImageDraw.Draw(img)
-    canvas.text((0,0), img_name, fill='black')
+    canvas.text((0,0), title, fill='black')
     self.tk_img = ImageTk.PhotoImage(img)
     self.canvas.create_image(0,0, image=self.tk_img, anchor=tk.NW)
     # Look up any existing bees in DB for this image.
