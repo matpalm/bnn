@@ -96,3 +96,8 @@ to specifiy what type of output set one of the following...
 --image-dir sample_data/unlabelled \
 --export-pngs predictions
 ```
+
+### running on compute stick
+
+( note: this still doesn't work; possibly because of something in these steps, or possibly something about the tf api
+support of the stick. see [this forum post](https://ncsforum.movidius.com/discussion/692/incorrect-inference-results-from-a-minimal-tensorflow-model#latest) for more info... )
