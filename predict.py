@@ -71,6 +71,8 @@ for idx, filename in enumerate(sorted(os.listdir(opts.image_dir))):
     # calc [(x,y), ...] centroids
     centroids = u.centroids_of_connected_components(prediction, rescale=2.0)
 
+    # TODO: clumsy to do this in predict; should just use this to output db
+    #       and then have a util to compare dbs
     pt_set_distance = 0.0
     if true_db is not None:
       true_centroids = true_db.get_labels(filename)
