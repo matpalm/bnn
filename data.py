@@ -90,23 +90,6 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_fraction, distort_r
           make_one_shot_iterator().
           get_next())
 
-def img_filename_iterator(base_dir):
-  # return dataset of (image, filename) for inference
-
-  # decide both local path filenames and full path for decoding
-  filenames = sorted(os.listdir(base_dir))
-  full_path_filenames = [ "%s/%s" % (base_dir, f) for f in filenames ]
-
-  def decode_image(full_path_filename, filename):
-    image = tf.image.decode_image(tf.read_file(full_path_filename))
-    image = tf.reshape(image, (1024, 768, 3))  # only required for debugging?
-    return image, filename  # reemit filename as "label"
-
-  dataset = tf.data.Dataset.from_tensor_slices((tf.constant(full_path_filenames),
-                                                tf.constant(filenames)))
-  dataset = dataset.map(decode_image, num_parallel_calls=8)
-  return dataset.batch(1).prefetch(2).make_one_shot_iterator().get_next()
-
 
 if __name__ == "__main__":
   import argparse
