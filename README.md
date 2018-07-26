@@ -101,3 +101,7 @@ to specifiy what type of output set one of the following...
 
 ( note: this still doesn't work; possibly because of something in these steps, or possibly something about the tf api
 support of the stick. see [this forum post](https://ncsforum.movidius.com/discussion/692/incorrect-inference-results-from-a-minimal-tensorflow-model#latest) for more info... )
+
+### some available datasets
+
+* [Jonathan Byrne's](https://github.com/squeakus) [to-bee-or-not-to-bee](https://www.kaggle.com/jonathanbyrne/to-bee-or-not-to-bee) kaggle dataset
