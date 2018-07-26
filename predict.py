@@ -22,11 +22,12 @@ parser.add_argument('--export-pngs', default='',
                     help='how, if at all, to export pngs {"", "predictions", "centroids"}')
 parser.add_argument('--base-filter-size', type=int, default=16)
 parser.add_argument('--true-label-db', type=str, default=None, help='label for true values to compare to centroids')
+parser.add_argument('--width', type=int, default=768, help='input image width')
+parser.add_argument('--height', type=int, default=1024, help='input image height')
 opts = parser.parse_args()
 
 # feed data through an explicit placeholder to avoid using tf.data
-# (i _thought_ for a bit this was the cause of the linker .os problem but it's something else...)
-imgs = tf.placeholder(dtype=tf.float32, shape=(1, 1024, 768, 3), name='input_imgs')
+imgs = tf.placeholder(dtype=tf.float32, shape=(1, opts.height, opts.width, 3), name='input_imgs')
 
 # restore model
 with tf.variable_scope("train_test_model") as scope:  # clumsy :/

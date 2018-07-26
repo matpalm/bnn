@@ -13,6 +13,8 @@ import util as u
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--label-db', type=str, help='label_db to materialise bitmaps from')
 parser.add_argument('--directory', type=str, help='directory to store bitmaps')
+parser.add_argument('--width', type=int, default=768, help='input image width')
+parser.add_argument('--height', type=int, default=1024, help='input image height')
 opts = parser.parse_args()
 print(opts)
 
@@ -24,8 +26,8 @@ if not os.path.exists(opts.directory):
 fnames = list(label_db.imgs())
 for i, fname in enumerate(fnames):
   bitmap = u.xys_to_bitmap(xys=label_db.get_labels(fname),
-                           height=1024,
-                           width=768,
+                           height=opts.height,
+                           width=opts.width,
                            rescale=0.5)
   single_channel_img = u.bitmap_to_single_channel_pil_image(bitmap)
   single_channel_img.save("%s/%s" % (opts.directory, fname.replace(".jpg", ".png")))

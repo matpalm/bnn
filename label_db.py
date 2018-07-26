@@ -86,5 +86,4 @@ if __name__ == "__main__":
   parser.add_argument('--label-db', type=str, default="label.db")
   opts = parser.parse_args()
   db = LabelDB(label_db_file=opts.label_db)
-#  db.create_if_required()
-  print("#entries", len(db.imgs()))
+  print("\n".join(db.imgs()))

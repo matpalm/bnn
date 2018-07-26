@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 from PIL import Image, ImageDraw
 import label_db
+import argparse
+
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument('--width', type=int, default=768, help='input image width')
+parser.add_argument('--height', type=int, default=1024, help='input image height')
+opts = parser.parse_args()
 
 HW = 50//2  # crops are 50x50
 
@@ -12,7 +18,7 @@ def valid(labels, cx, cy):
     # either left or top margin out of bounds => invalid
     return False
   x2, y2 = cx+HW, cy+HW
-  if x2 > 768 or y2 > 1024:
+  if x2 > opts.width or y2 > opts.height:
     # either right or bottom margin out of bounds => invalid
     return False
   for ox, oy in labels:
