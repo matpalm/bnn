@@ -33,4 +33,5 @@ for img in predicted_db.imgs():
 
 precision = total_TP / ( total_TP + total_FP )
 recall = total_TP / ( total_TP + total_FN )
-print("precision", precision, "recall", recall)
+f1 = 2 * (precision * recall) / (precision + recall)
+print("precision %0.3f  recall %0.3f  f1 %0.3f" % ( precision, recall, f1))

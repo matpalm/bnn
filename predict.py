@@ -21,6 +21,7 @@ parser.add_argument('--no-use-batch-norm', action='store_true')
 parser.add_argument('--export-pngs', default='',
                     help='how, if at all, to export pngs {"", "predictions", "centroids"}')
 parser.add_argument('--base-filter-size', type=int, default=8)
+parser.add_argument('--connected-components-threshold', type=float, default=0.05)
 parser.add_argument('--width', type=int, default=768, help='input image width')
 parser.add_argument('--height', type=int, default=1024, help='input image height')
 opts = parser.parse_args()
@@ -63,7 +64,9 @@ for idx, filename in enumerate(sorted(os.listdir(opts.image_dir))):
     prediction = sess.run(model.output, feed_dict={model.imgs: [img]})[0]
 
     # calc [(x,y), ...] centroids
-    centroids = u.centroids_of_connected_components(prediction, rescale=2.0)
+    centroids = u.centroids_of_connected_components(prediction,
+                                                    rescale=2.0,
+                                                    threshold=opts.connected_components_threshold)
 
     print("\t".join(map(str, ["X", idx, filename, len(centroids)])))
 
