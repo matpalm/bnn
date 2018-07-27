@@ -36,13 +36,13 @@ class LabelUI():
     print("UP     toggle labels")
     root.bind('N', self.display_next_unlabelled_image)
     print("N   next image with 0 labels")
-    root.bind('Q', self.quit)  # right mouse button
+    root.bind('Q', self.quit)
     print("Q   quit")
     self.canvas = tk.Canvas(root, cursor='tcross')
     self.canvas.config(width=width, height=height)
     self.canvas.bind('<Button-1>', self.add_bee_event)  # left mouse button
     self.canvas.bind('<Button-3>', self.remove_closest_bee_event)  # right mouse button
-    
+
     self.canvas.pack()
 
     # A lookup table from bee x,y to any rectangles that have been drawn
@@ -60,7 +60,7 @@ class LabelUI():
     root.mainloop()
 
   def quit(self, e):
-   	exit()
+        exit()
 
   def add_bee_event(self, e):
     if not self.bees_on:
