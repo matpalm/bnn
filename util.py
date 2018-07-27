@@ -152,46 +152,40 @@ def red_dots(rgb, centroids):
     canvas.rectangle((x-2,y-2,x+2,y+2), fill='red')
   return img
 
-def compare_sets(true_pts, predicted_pts):
-  # compare two sets of points (presumably true & predicted centroids)
-  # iteratively find closest point in each set and accumulative distance
-  # at end add arbitrary penalty for each point left in either set (e.g. sets
-  # not same size). normalise final value by size of originl true set
+def compare_sets(true_pts, predicted_pts, threshold=10.0):
+  # compare two sets of true & predicted centroids and calculate TP, FP and FN rate.
 
-  # record true set size for final normalisation
-  original_num_true_pts = len(true_pts)
+  # iteratively find closest point in each set and if they are close enough (according
+  # to threshold) declare them them a match (i.e. true positive). once the closest
+  # match is above the threshold, or we run out of points to match, stop comparing.
+  # whatever remains in true_pts & predicted_pts after matching is done are false
+  # negatives & positives respectively.
+  # return final count of TPs, FPs & FNs for later aggregation into precision, recall, etc.
 
-  # still a problem somewhere were centroid x/ys are being flipped :/
-  # need to hunt this DOWN!!! (see flip=True)
-  predicted_pts = [(y, x) for x, y in predicted_pts]
-
-  # since we're going to be mutating these lists (by removing points)
-  # let's explicitly record idxs alongside
-  # note: removal of points was the main idea to not use a 2d np array here
-  true_pts = list(enumerate(true_pts))
-  predicted_pts = list(enumerate(predicted_pts))
-
-  # iterate through pairs collecting sum of (sqrd) distances
-  # between closest points until one of the lists is empty
-  cumulative_distance = 0.0
+  true_positive_count = 0
   while len(true_pts) > 0 and len(predicted_pts) > 0:
     # find indexes of closest pair
     closest_pair = None
-    closest_distance = None  # though, actually squared distance
-    for t_i, (_, t) in enumerate(true_pts):
-      for p_i, (_, p) in enumerate(predicted_pts):
-        distance = (t[0]-p[0])**2 + (t[1]-p[1])**2
-        if closest_distance is None or distance < closest_distance:
+    closest_sqr_distance = None
+    for t_i, t in enumerate(true_pts):
+      for p_i, p in enumerate(predicted_pts):
+        sqr_distance = (t[0]-p[0])**2 + (t[1]-p[1])**2
+        if closest_sqr_distance is None or sqr_distance < closest_sqr_distance:
           closest_pair = t_i, p_i
-          closest_distance = distance
-    # collect distance and delete points
-    cumulative_distance += math.sqrt(closest_distance)
+          closest_sqr_distance = sqr_distance
+    # if closest pair is above threshold so comparing
+    closest_distance = math.sqrt(closest_sqr_distance)
+    if closest_distance > threshold:
+      break
+    # otherwise delete closest pair & declare them a match
     t_i, p_i = closest_pair
     del true_pts[t_i]
     del predicted_pts[p_i]
+    true_positive_count += 1
 
-  # penalise each missing pair by a distance of (arbitrary) 100
-  cumulative_distance += 100 * (len(true_pts) + len(predicted_pts))
+  # remaining unmatched entries are false positives & negatives.
+  false_negative_count = len(true_pts)
+  false_positive_count = len(predicted_pts)
 
-  # normalise final return value by original number of true labels
-  return cumulative_distance / original_num_true_pts
+  # return counts for aggregation
+  return true_positive_count, false_positive_count, false_negative_count

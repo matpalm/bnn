@@ -3,25 +3,34 @@
 import argparse
 from label_db import LabelDB
 import numpy as np
-import tensorflow as tf
 import util as u
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--db-1', type=str, required=True, help='db 1. expect every entry is also in db2')
-parser.add_argument('--db-2', type=str, required=True, help='db 2. expect to contain every entry of db1')
+parser.add_argument('--true-db', type=str, required=True, help='true labels')
+parser.add_argument('--predicted-db', type=str, required=True, help='predicted labels')
 opts = parser.parse_args()
-assert opts.db_1 != opts.db_2
+assert opts.true_db != opts.predicted_db
 
-db_1 = LabelDB(label_db_file=opts.db_1)
-db_2 = LabelDB(label_db_file=opts.db_2)
+true_db = LabelDB(label_db_file=opts.true_db)
+predicted_db = LabelDB(label_db_file=opts.predicted_db)
 
-# iterate over db_1; every entry must be in db_2
+# iterate over predicted_db; we expect true_db to be a super set of it.
 print("\t".join(["img", "#1_total", "#2_total", "ad", "#1_left", "#2_left"]))
-for img in db_1.imgs():
-  if not db_2.has_labels(img):
+total_TP = total_FP = total_FN = 0
+for img in predicted_db.imgs():
+  if not true_db.has_labels(img):
     # note: this can imply 0 labels
-    raise Exception("img %s is in db_1 but not db_2")
-  labels_1 = db_1.get_labels(img)
-  labels_2 = db_2.get_labels(img)
-  avg_dist, n1_left, n2_left = u.compare_sets(labels_1, labels_2)
-  print("\t".join(map(str, [img, len(labels_1), len(labels_2), avg_dist, n1_left, n2_left])))
+    raise Exception("img %s is in --predicted-db but not --true-db")
+
+  true_labels = true_db.get_labels(img)
+  predicted_labels = predicted_db.get_labels(img)
+  TP, FP, FN = u.compare_sets(true_labels, predicted_labels)
+  print("img", img, TP, FP, FN)
+
+  total_TP += TP
+  total_FP += FP
+  total_FN += FN
+
+precision = total_TP / ( total_TP + total_FP )
+recall = total_TP / ( total_TP + total_FN )
+print("precision", precision, "recall", recall)
