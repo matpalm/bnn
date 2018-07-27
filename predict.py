@@ -20,7 +20,7 @@ parser.add_argument('--no-use-skip-connections', action='store_true')
 parser.add_argument('--no-use-batch-norm', action='store_true')
 parser.add_argument('--export-pngs', default='',
                     help='how, if at all, to export pngs {"", "predictions", "centroids"}')
-parser.add_argument('--base-filter-size', type=int, default=16)
+parser.add_argument('--base-filter-size', type=int, default=8)
 parser.add_argument('--width', type=int, default=768, help='input image width')
 parser.add_argument('--height', type=int, default=1024, help='input image height')
 opts = parser.parse_args()
