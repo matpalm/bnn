@@ -9,13 +9,11 @@ from label_db import LabelDB
 import re
 
 class LabelUI():
-  def __init__(self, label_db_filename, img_dir, sort=True):
+  def __init__(self, label_db_filename, img_dir, width, height, sort=True):
 
     # what images to review?
     # note: drop trailing / in dir name (if present)
     self.img_dir = re.sub("/$", "", img_dir)
-    self.img_width = 820
-    self.img_height = 616
     self.files = os.listdir(img_dir)
     if sort:
       self.files = sorted(self.files)
@@ -41,7 +39,7 @@ class LabelUI():
     root.bind('Q', self.quit)  # right mouse button
     print("Q   quit")
     self.canvas = tk.Canvas(root, cursor='tcross')
-    self.canvas.config(width=self.img_width, height=self.img_height)
+    self.canvas.config(width=width, height=height)
     self.canvas.bind('<Button-1>', self.add_bee_event)  # left mouse button
     self.canvas.bind('<Button-3>', self.remove_closest_bee_event)  # right mouse button
     
@@ -166,7 +164,9 @@ import argparse
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--image-dir', type=str, required=True)
 parser.add_argument('--label-db', type=str, required=True)
+parser.add_argument('--width', type=int, default=768, help='input image width')
+parser.add_argument('--height', type=int, default=1024, help='input image height')
 parser.add_argument('--no-sort', action='store_true')
 opts = parser.parse_args()
 
-LabelUI(opts.label_db, opts.image_dir, sort=not opts.no_sort)
+LabelUI(opts.label_db, opts.image_dir, opts.width, opts.height, sort=not opts.no_sort)

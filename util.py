@@ -22,7 +22,11 @@ def xys_to_bitmap(xys, height, width, rescale=1.0):
   # note: include trailing 1 dim to easier match model output
   bitmap = np.zeros((int(height*rescale), int(width*rescale), 1), dtype=np.float32)
   for x, y in xys:
-    bitmap[int(y*rescale), int(x*rescale), 0] = 1.0  # recall images are (height, width)
+    try:
+      bitmap[int(y*rescale), int(x*rescale), 0] = 1.0  # recall images are (height, width)
+    except IndexError as e:
+      print("IndexError: are --height and --width correct?")
+      raise e
   return bitmap
 
 def debug_img(i, bm, o):

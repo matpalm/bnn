@@ -19,7 +19,6 @@ parser.add_argument('--output-label-db', type=str, default=None, help='if not se
 parser.add_argument('--graph', type=str, default='bnn_graph.predict.frozen.pb', help='graph.pb to use')
 parser.add_argument('--export-pngs', default='',
                     help='how, if at all, to export pngs {"", "predictions", "centroids"}')
-parser.add_argument('--base-filter-size', type=int, default=16)
 opts = parser.parse_args()
 
 # restore frozen graph
