@@ -72,7 +72,7 @@ we can visualise the training data with `data.py`
 train with `train.py`.
 `run` denotes the subdirectory for ckpts and tensorboard logs; e.g. `--run r12` checkpoints under `ckpts/r12/` and logs under `tb/r12`.
 
-use `--help` to get complete list of options including model config and stopping conditions.
+use `--help` to get complete list of options including model config, defining validation data and stopping conditions.
 
 ```
 ./train.py \
@@ -94,7 +94,16 @@ to specifiy what type of output set one of the following...
 ./predict.py \
 --run r12 \
 --image-dir sample_data/unlabelled \
+--output-label-db predictions.db \
 --export-pngs predictions
+```
+
+output predictions can be compared to labelled data to calculate precision recall. (we deem a detection correct if it is within
+a thresholded distance from a label)
+
+```
+./compare_label_dbs.py --true-db ground_truth.db --predicted-db predictions.db
+precision 0.936  recall 0.797  f1 0.861
 ```
 
 ### running on compute stick
