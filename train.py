@@ -27,6 +27,8 @@ parser.add_argument('--random-rotate', action='store_true', help='randomly rotat
 parser.add_argument('--steps', type=int, default=100000, help='max number of steps (test, summaries every --train-steps)')
 parser.add_argument('--train-steps', type=int, default=100, help='number training steps between test and summaries')
 parser.add_argument('--secs', type=int, default=None, help='If set, max number of seconds to run.')
+parser.add_argument('--width', type=int, default=768, help='input image width')
+parser.add_argument('--height', type=int, default=1024, help='input image height')
 opts = parser.parse_args()
 print("opts %s" % opts, file=sys.stderr)
 
@@ -40,7 +42,8 @@ train_imgs, train_xys_bitmaps = data.img_xys_iterator(image_dir=opts.train_image
                                                       distort_rgb=True,
                                                       flip_left_right=opts.flip_left_right,
                                                       random_rotation=opts.random_rotate,
-                                                      repeat=True)
+                                                      repeat=True,
+                                                      width=opts.width, height=opts.height)
 test_imgs, test_xys_bitmaps = data.img_xys_iterator(image_dir=opts.test_image_dir,
                                                     label_dir=opts.label_dir,
                                                     batch_size=1,
@@ -48,7 +51,8 @@ test_imgs, test_xys_bitmaps = data.img_xys_iterator(image_dir=opts.test_image_di
                                                     distort_rgb=False,
                                                     flip_left_right=False,
                                                     random_rotation=False,
-                                                    repeat=True)
+                                                    repeat=True,
+                                                    width=opts.width, height=opts.height)
 print(test_imgs.get_shape())
 print(test_xys_bitmaps.get_shape())
 
@@ -117,11 +121,9 @@ for idx in range(opts.steps // opts.train_steps):
   train_summaries_writer.flush()
 
   # ... test
-  i, bm, logits, o, xl, dl, step = sess.run([test_imgs, test_xys_bitmaps,
-                                             test_model.logits, test_model.output,
-                                             test_model.xent_loss, test_model.dice_loss,
-                                             global_step])
-  print("test logits", logits.shape, np.min(logits), np.max(logits))
+  i, bm, o, xl, dl, step = sess.run([test_imgs, test_xys_bitmaps, test_model.output,
+                                     test_model.xent_loss, test_model.dice_loss,
+                                     global_step])
   test_summaries_writer.add_summary(u.explicit_loss_summary(xl, dl), step)
   debug_img_summary = u.pil_image_to_tf_summary(u.debug_img(i, bm, o))
   test_summaries_writer.add_summary(debug_img_summary, step)

@@ -47,8 +47,8 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_fraction, distort_r
     # we want to use the same crop for both RGB input and bitmap labels
     patch_width, patch_height = width // patch_fraction, height // patch_fraction
     offset_height = tf.random_uniform([], 0, height-patch_height, dtype=tf.int32)
-    offset_width = tf.random_uniform([], 0, weight-patch_width, dtype=tf.int32)
-    rgb = tf.image.crop_to_bounding_box(rgb, offset_height, offset_width, ph, pw)
+    offset_width = tf.random_uniform([], 0, width-patch_width, dtype=tf.int32)
+    rgb = tf.image.crop_to_bounding_box(rgb, offset_height, offset_width, patch_height, patch_width)
     bitmap = tf.image.crop_to_bounding_box(bitmap, offset_height // 2, offset_width // 2,
                                            patch_height // 2, patch_width // 2 )
     return rgb, bitmap

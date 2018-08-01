@@ -15,9 +15,8 @@ def dump_shape_and_product_of(tag, t):
 
 class Model(object):
 
-  def __init__(self, imgs, is_training,
-               use_skip_connections=True, base_filter_size=16,
-               use_batch_norm=True):
+  def __init__(self, imgs, is_training, use_skip_connections,
+               base_filter_size, use_batch_norm):
     self.imgs = imgs
     model = imgs
 
