@@ -3,7 +3,7 @@ Description=Camera capture
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/python -u /home/pi/capture/capture_stills.py
+ExecStart=/usr/bin/python -u /home/pi/bnn/rasp_pi/capture_stills.py
 WorkingDirectory=/home/pi/capture/
 StandardOutput=inherit
 StandardError=inherit
