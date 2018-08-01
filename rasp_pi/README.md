@@ -19,3 +19,11 @@ root crontab (no use capturing in the dark)
 0 5 * * * systemctl start capture.service
 0 21 * * * systemctl stop capture.service
 ```
+
+## components for rasp pi
+
+* Raspberry Pi Camera Board v2.1
+* Adafruit 6V 6W Solar panel
+* Adafruit USB / DC / Solar Lithium Ion/Polymer charger - v2
+* Adafruit PowerBoost 500 Charger
+* 2500 mAh LiPo battery
