@@ -58,25 +58,23 @@ print(test_xys_bitmaps.get_shape())
 
 # Build training and test model with same params.
 # TODO: opts for skip and base filters
-with tf.variable_scope("train_test_model") as scope:
-  print("patch train model...")
-  train_model = model.Model(train_imgs,
-                            is_training=True,
-                            use_skip_connections=not opts.no_use_skip_connections,
-                            base_filter_size=opts.base_filter_size,
-                            use_batch_norm=not opts.no_use_batch_norm)
-  train_model.calculate_losses_wrt(labels=train_xys_bitmaps,
-                                   batch_size=opts.batch_size)
+print("patch train model...")
+train_model = model.Model(train_imgs,
+                          is_training=True,
+                          use_skip_connections=not opts.no_use_skip_connections,
+                          base_filter_size=opts.base_filter_size,
+                          use_batch_norm=not opts.no_use_batch_norm)
+train_model.calculate_losses_wrt(labels=train_xys_bitmaps,
+                                 batch_size=opts.batch_size)
 
-with tf.variable_scope("train_test_model", reuse=tf.AUTO_REUSE) as scope:
-  print("full res test model...")
-  test_model = model.Model(test_imgs,
-                           is_training=False,
-                           use_skip_connections=not opts.no_use_skip_connections,
-                           base_filter_size=opts.base_filter_size,
-                           use_batch_norm=not opts.no_use_batch_norm)
-  test_model.calculate_losses_wrt(labels=test_xys_bitmaps,
-                                  batch_size=opts.batch_size)
+print("full res test model...")
+test_model = model.Model(test_imgs,
+                         is_training=False,
+                         use_skip_connections=not opts.no_use_skip_connections,
+                         base_filter_size=opts.base_filter_size,
+                         use_batch_norm=not opts.no_use_batch_norm)
+test_model.calculate_losses_wrt(labels=test_xys_bitmaps,
+                                batch_size=opts.batch_size)
 
 global_step = tf.train.get_or_create_global_step()
 

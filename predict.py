@@ -30,12 +30,11 @@ opts = parser.parse_args()
 imgs = tf.placeholder(dtype=tf.float32, shape=(1, opts.height, opts.width, 3), name='input_imgs')
 
 # restore model
-with tf.variable_scope("train_test_model") as scope:  # clumsy :/
-  model = model.Model(imgs,
-                      is_training=False,
-                      use_skip_connections=not opts.no_use_skip_connections,
-                      base_filter_size=opts.base_filter_size,
-                      use_batch_norm=not opts.no_use_batch_norm)
+model = model.Model(imgs,
+                    is_training=False,
+                    use_skip_connections=not opts.no_use_skip_connections,
+                    base_filter_size=opts.base_filter_size,
+                    use_batch_norm=not opts.no_use_batch_norm)
 sess = tf.Session()
 model.restore(sess, "ckpts/%s" % opts.run)
 

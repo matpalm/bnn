@@ -23,12 +23,11 @@ target_bitmap[3, 3] = 1.0
 target_bitmap = np.tile(np.expand_dims(target_bitmap, 0), [64, 1, 1, 1])
 
 # init e3b model
-with tf.variable_scope("train_test_model") as scope:  # clumsy :/
-  model = model.Model(imgs,
-                      is_training=False,
-                      use_skip_connections=True,
-                      base_filter_size=4,
-                      use_batch_norm=False)
+model = model.Model(imgs,
+                    is_training=False,
+                    use_skip_connections=True,
+                    base_filter_size=4,
+                    use_batch_norm=False)
 
 # restore model
 # we can't use the model.restore since there is now one extra variable that

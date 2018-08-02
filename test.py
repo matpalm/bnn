@@ -38,14 +38,13 @@ test_imgs, test_xys_bitmaps = data.img_xys_iterator(image_dir=opts.image_dir,
                                                     width=opts.width,
                                                     height=opts.height)
 
-with tf.variable_scope("train_test_model") as scope:  # clumsy :/
-  model = model.Model(test_imgs,
-                      is_training=False,
-                      use_skip_connections=not opts.no_use_skip_connections,
-                      base_filter_size=opts.base_filter_size,
-                      use_batch_norm=not opts.no_use_batch_norm)
-  model.calculate_losses_wrt(labels=test_xys_bitmaps,
-                             batch_size=opts.batch_size)
+model = model.Model(test_imgs,
+                    is_training=False,
+                    use_skip_connections=not opts.no_use_skip_connections,
+                    base_filter_size=opts.base_filter_size,
+                    use_batch_norm=not opts.no_use_batch_norm)
+model.calculate_losses_wrt(labels=test_xys_bitmaps,
+                           batch_size=opts.batch_size)
 
 sess = tf.Session()
 model.restore(sess, "ckpts/%s" % opts.run)
