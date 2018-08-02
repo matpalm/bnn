@@ -53,6 +53,12 @@ def explicit_loss_summary(xent_loss, dice_loss):
     tf.Summary.Value(tag="dice_loss", simple_value=dice_loss)
   ])
 
+def precision_recall_summary(precision, recall):
+  return tf.Summary(value=[
+    tf.Summary.Value(tag="precision", simple_value=precision),
+    tf.Summary.Value(tag="recall", simple_value=recall)
+  ])
+
 def pil_image_to_tf_summary(img):
   # serialise png bytes
   sio = io.BytesIO()

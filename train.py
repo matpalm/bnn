@@ -46,7 +46,7 @@ train_imgs, train_xys_bitmaps = data.img_xys_iterator(image_dir=opts.train_image
                                                       width=opts.width, height=opts.height)
 test_imgs, test_xys_bitmaps = data.img_xys_iterator(image_dir=opts.test_image_dir,
                                                     label_dir=opts.label_dir,
-                                                    batch_size=1,
+                                                    batch_size=opts.batch_size,
                                                     patch_fraction=1,
                                                     distort_rgb=False,
                                                     flip_left_right=False,
@@ -124,7 +124,23 @@ for idx in range(opts.steps // opts.train_steps):
   i, bm, o, xl, dl, step = sess.run([test_imgs, test_xys_bitmaps, test_model.output,
                                      test_model.xent_loss, test_model.dice_loss,
                                      global_step])
+
   test_summaries_writer.add_summary(u.explicit_loss_summary(xl, dl), step)
+
+  tp = fp = fn = 0
+  for idx in range(bm.shape[0]):
+    true_centroids = u.centroids_of_connected_components(bm[idx])
+    predicted_centroids = u.centroids_of_connected_components(o[idx])
+    btp, bfp, bfn = u.compare_sets(true_centroids, predicted_centroids)
+    tp += btp
+    fp += bfp
+    fn += bfn
+  try:
+    precision, recall = tp/(tp+fp), tp/(tp+fn)
+  except ZeroDivisionError:
+    precision = recall = 0
+  test_summaries_writer.add_summary(u.precision_recall_summary(precision, recall), step)
+
   debug_img_summary = u.pil_image_to_tf_summary(u.debug_img(i, bm, o))
   test_summaries_writer.add_summary(debug_img_summary, step)
   test_summaries_writer.flush()
