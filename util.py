@@ -53,10 +53,11 @@ def explicit_loss_summary(xent_loss, dice_loss):
     tf.Summary.Value(tag="dice_loss", simple_value=dice_loss)
   ])
 
-def precision_recall_summary(precision, recall):
+def precision_recall_f1_summary(precision, recall, f1):
   return tf.Summary(value=[
     tf.Summary.Value(tag="precision", simple_value=precision),
-    tf.Summary.Value(tag="recall", simple_value=recall)
+    tf.Summary.Value(tag="recall", simple_value=recall),
+    tf.Summary.Value(tag="f1", simple_value=f1)
   ])
 
 def pil_image_to_tf_summary(img):
@@ -158,40 +159,59 @@ def red_dots(rgb, centroids):
     canvas.rectangle((x-2,y-2,x+2,y+2), fill='red')
   return img
 
-def compare_sets(true_pts, predicted_pts, threshold=10.0):
-  # compare two sets of true & predicted centroids and calculate TP, FP and FN rate.
 
-  # iteratively find closest point in each set and if they are close enough (according
-  # to threshold) declare them them a match (i.e. true positive). once the closest
-  # match is above the threshold, or we run out of points to match, stop comparing.
-  # whatever remains in true_pts & predicted_pts after matching is done are false
-  # negatives & positives respectively.
-  # return final count of TPs, FPs & FNs for later aggregation into precision, recall, etc.
+class SetComparison(object):
+  def __init__(self):
+    self.true_positive_count = 0
+    self.false_negative_count = 0
+    self.false_positive_count = 0
 
-  true_positive_count = 0
-  while len(true_pts) > 0 and len(predicted_pts) > 0:
-    # find indexes of closest pair
-    closest_pair = None
-    closest_sqr_distance = None
-    for t_i, t in enumerate(true_pts):
-      for p_i, p in enumerate(predicted_pts):
-        sqr_distance = (t[0]-p[0])**2 + (t[1]-p[1])**2
-        if closest_sqr_distance is None or sqr_distance < closest_sqr_distance:
-          closest_pair = t_i, p_i
-          closest_sqr_distance = sqr_distance
-    # if closest pair is above threshold so comparing
-    closest_distance = math.sqrt(closest_sqr_distance)
-    if closest_distance > threshold:
-      break
-    # otherwise delete closest pair & declare them a match
-    t_i, p_i = closest_pair
-    del true_pts[t_i]
-    del predicted_pts[p_i]
-    true_positive_count += 1
+  def compare_sets(self, true_pts, predicted_pts, threshold=10.0):
+    # compare two sets of true & predicted centroids and calculate TP, FP and FN rate.
 
-  # remaining unmatched entries are false positives & negatives.
-  false_negative_count = len(true_pts)
-  false_positive_count = len(predicted_pts)
+    # iteratively find closest point in each set and if they are close enough (according
+    # to threshold) declare them them a match (i.e. true positive). once the closest
+    # match is above the threshold, or we run out of points to match, stop comparing.
+    # whatever remains in true_pts & predicted_pts after matching is done are false
+    # negatives & positives respectively.
+    TP = 0
+    while len(true_pts) > 0 and len(predicted_pts) > 0:
+      # find indexes of closest pair
+      closest_pair = None
+      closest_sqr_distance = None
+      for t_i, t in enumerate(true_pts):
+        for p_i, p in enumerate(predicted_pts):
+          sqr_distance = (t[0]-p[0])**2 + (t[1]-p[1])**2
+          if closest_sqr_distance is None or sqr_distance < closest_sqr_distance:
+            closest_pair = t_i, p_i
+            closest_sqr_distance = sqr_distance
+      # if closest pair is above threshold so comparing
+      closest_distance = math.sqrt(closest_sqr_distance)
+      if closest_distance > threshold:
+        break
+      # otherwise delete closest pair & declare them a match
+      t_i, p_i = closest_pair
+      del true_pts[t_i]
+      del predicted_pts[p_i]
+      TP += 1
 
-  # return counts for aggregation
-  return true_positive_count, false_positive_count, false_negative_count
+    # remaining unmatched entries are false positives & negatives.
+    FN = len(true_pts)
+    FP = len(predicted_pts)
+
+    # aggregate
+    self.true_positive_count += TP
+    self.false_negative_count += FN
+    self.false_positive_count += FP
+
+    # return for just this comparison
+    return TP, FN, FP
+
+  def precision_recall_f1(self):
+    try:
+      precision = self.true_positive_count / (self.true_positive_count + self.false_positive_count)
+      recall = self.true_positive_count / (self.true_positive_count + self.false_negative_count)
+      f1 = 2 * (precision * recall) / (precision + recall)
+      return precision, recall, f1
+    except ZeroDivisionError:
+      return 0, 0, 0

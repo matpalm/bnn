@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
+set -x
 
-set -ex
+rm -rf sample_data/labels/ ckpts/r12 tb/r12 sample_predictions.db
+
+set -e
 
 # run labelling UI
 ./label_ui.py \
@@ -36,5 +39,5 @@ set -ex
 ./predict.py \
     --run r12 \
     --image-dir sample_data/unlabelled \
-    --output-label-db predictions.db \
+    --output-label-db sample_predictions.db \
     --export-pngs predictions

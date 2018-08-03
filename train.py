@@ -125,19 +125,12 @@ for idx in range(opts.steps // opts.train_steps):
 
   test_summaries_writer.add_summary(u.explicit_loss_summary(xl, dl), step)
 
-  tp = fp = fn = 0
+  set_comparison = u.SetComparison()
   for idx in range(bm.shape[0]):
     true_centroids = u.centroids_of_connected_components(bm[idx])
     predicted_centroids = u.centroids_of_connected_components(o[idx])
-    btp, bfp, bfn = u.compare_sets(true_centroids, predicted_centroids)
-    tp += btp
-    fp += bfp
-    fn += bfn
-  try:
-    precision, recall = tp/(tp+fp), tp/(tp+fn)
-  except ZeroDivisionError:
-    precision = recall = 0
-  test_summaries_writer.add_summary(u.precision_recall_summary(precision, recall), step)
+    set_comparison.compare_sets(true_centroids, predicted_centroids)
+  test_summaries_writer.add_summary(u.precision_recall_f1_summary(*set_comparison.precision_recall_f1()), step)
 
   debug_img_summary = u.pil_image_to_tf_summary(u.debug_img(i, bm, o))
   test_summaries_writer.add_summary(debug_img_summary, step)

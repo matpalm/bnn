@@ -116,7 +116,7 @@ a great result; these instructions are more included to prove the plumbing works
 ./predict.py \
 --run r12 \
 --image-dir sample_data/unlabelled \
---output-label-db predictions.db \
+--output-label-db sample_predictions.db \
 --export-pngs predictions
 ```
 
