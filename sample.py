@@ -21,7 +21,7 @@ if not os.path.isdir(src_directory):
   raise Exception("src_directory [%s] doesn't exist" % src_directory)
 if not os.path.isdir(dest_directory):
   print("creating destination directory [%s]" % dest_directory, file=sys.stderr)
-  print("mkdir -p %s" % dest_directory)
+  print("mkdir -p \"%s\"" % dest_directory)
 
 src_files = os.listdir(src_directory)
 print("%d src_files from [%s]" % (len(src_files), src_directory), file=sys.stderr)
@@ -36,5 +36,5 @@ if len(src_files) < opts.n:
 
 random.shuffle(src_files)
 for filename in src_files[:opts.n]:
-  print("%s %s/%s %s" % ("cp" if opts.copy else "mv",
+  print("%s \"%s/%s\" \"%s\"" % ("cp" if opts.copy else "mv",
                          src_directory, filename, dest_directory))
