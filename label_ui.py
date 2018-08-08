@@ -7,9 +7,10 @@ import sqlite3
 import random
 from label_db import LabelDB
 import re
+import util as u
 
 class LabelUI():
-  def __init__(self, label_db_filename, img_dir, width, height, sort=True):
+  def __init__(self, label_db_filename, img_dir, sort=True):
 
     # what images to review?
     # note: drop trailing / in dir name (if present)
@@ -19,6 +20,10 @@ class LabelUI():
       self.files = sorted(self.files)
     else:
       random.shuffle(self.files)
+
+    # verify all the image files are okay and the same size
+    imgnames = [os.path.join(img_dir,imgname) for imgname in self.files]
+    width, height = u.check_images(imgnames)
     print("%d files to review" % len(self.files))
 
     # label db
@@ -162,11 +167,9 @@ class LabelUI():
 
 import argparse
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--image-dir', type=str, required=True)
-parser.add_argument('--label-db', type=str, required=True)
-parser.add_argument('--width', type=int, default=768, help='input image width')
-parser.add_argument('--height', type=int, default=1024, help='input image height')
+parser.add_argument('-i', '--image-dir', type=str, required=True)
+parser.add_argument('-l', '--label-db', type=str, required=True)
 parser.add_argument('--no-sort', action='store_true')
 opts = parser.parse_args()
 
-LabelUI(opts.label_db, opts.image_dir, opts.width, opts.height, sort=not opts.no_sort)
+LabelUI(opts.label_db, opts.image_dir, sort=not opts.no_sort)
