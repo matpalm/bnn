@@ -10,7 +10,7 @@ import random
 import tensorflow as tf
 import util as u
 
-def img_xys_iterator(image_dir, label_dir, batch_size, patch_fraction, distort_rgb,
+def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, distort_rgb,
                      flip_left_right, random_rotation, repeat, width, height):
   # return dataset of (image, xys_bitmap) for training
 
@@ -45,7 +45,7 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_fraction, distort_r
 
   def random_crop(rgb, bitmap):
     # we want to use the same crop for both RGB input and bitmap labels
-    patch_width, patch_height = width // patch_fraction, height // patch_fraction
+    patch_width = patch_height = patch_width_height
     offset_height = tf.random_uniform([], 0, height-patch_height, dtype=tf.int32)
     offset_width = tf.random_uniform([], 0, width-patch_width, dtype=tf.int32)
     rgb = tf.image.crop_to_bounding_box(rgb, offset_height, offset_width, patch_height, patch_width)
@@ -77,7 +77,7 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_fraction, distort_r
     print("len(rgb_filenames)", len(rgb_filenames), ("CACHE" if len(rgb_filenames) < 1000 else "NO CACHE"))
     dataset = dataset.shuffle(1000).repeat()
 
-  if patch_fraction > 1:
+  if patch_width_height > 0:
     dataset = dataset.map(random_crop, num_parallel_calls=8)
   if flip_left_right:
     dataset = dataset.map(random_flip_left_right, num_parallel_calls=8)
@@ -101,8 +101,8 @@ if __name__ == "__main__":
                       help='location of corresponding L label files. (note: we assume for'
                            'each image-dir image there is a label-dir image)')
   parser.add_argument('--batch-size', type=int, default=4)
-  parser.add_argument('--patch-fraction', type=int, default=1,
-                      help="what fraction of image to use as patch. 1 => no patch")
+  parser.add_argument('--patch-width-height', type=int, default=0,
+                      help="what size square patches to sample. 0 => no patch, i.e. use full res image")
   parser.add_argument('--distort', action='store_true')
   parser.add_argument('--width', type=int, default=768, help='input image width')
   parser.add_argument('--height', type=int, default=1024, help='input image height')
@@ -116,7 +116,7 @@ if __name__ == "__main__":
   imgs, xyss = img_xys_iterator(image_dir=opts.image_dir,
                                 label_dir=opts.label_dir,
                                 batch_size=opts.batch_size,
-                                patch_fraction=opts.patch_fraction,
+                                patch_width_height=opts.patch_width_height,
                                 distort_rgb=opts.distort,
                                 flip_left_right=True,
                                 random_rotation=True,

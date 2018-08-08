@@ -30,7 +30,7 @@ print(opts)
 test_imgs, test_xys_bitmaps = data.img_xys_iterator(image_dir=opts.image_dir,
                                                     label_dir=opts.label_dir,
                                                     batch_size=opts.batch_size,
-                                                    patch_fraction=1,
+                                                    patch_width_height=0,  # i.e. no patchs
                                                     distort_rgb=False,
                                                     flip_left_right=False,
                                                     random_rotation=False,

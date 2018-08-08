@@ -17,13 +17,15 @@ set -e
     --directory sample_data/labels/ \
     --width 768 --height 1024
 
-# generate some samples of the data
+# generate some 256x236 sample patches of the data.
 ./data.py \
     --image-dir sample_data/training/ \
     --label-dir sample_data/labels/ \
+    --patch-width-height 256 \
     --width 768 --height 1024
 
-# train for a bit...
+# train for a bit using 256 square patches for training and
+# full resolution for test
 # note: this is nowhere near enough to get a good result; just
 #       included for end to end testing
 ./train.py \
@@ -33,6 +35,7 @@ set -e
     --train-image-dir sample_data/training/ \
     --test-image-dir sample_data/test/ \
     --label-dir sample_data/labels/ \
+    --patch-width-height 256 \
     --width 768 --height 1024
 
 # run inference against unlabelled data

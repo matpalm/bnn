@@ -15,7 +15,8 @@ parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFo
 parser.add_argument('--train-image-dir', type=str, default="images/201802_sample/training", help="training images")
 parser.add_argument('--test-image-dir', type=str, default="images/201802_sample/test", help="test images")
 parser.add_argument('--label-dir', type=str, default="labels/201802_sample", help="labels for train/test")
-parser.add_argument('--patch-fraction', type=int, default=2, help=' ')
+parser.add_argument('--patch-width-height', type=int, default=0,
+                    help="what size square patches to sample. 0 => no patch, i.e. use full res image")
 parser.add_argument('--batch-size', type=int, default=32, help=' ')
 parser.add_argument('--learning-rate', type=float, default=0.001, help=' ')
 parser.add_argument('--run', type=str, required=True, help="run dir for tb & ckpts")
@@ -38,7 +39,7 @@ np.set_printoptions(precision=2, threshold=10000, suppress=True, linewidth=10000
 train_imgs, train_xys_bitmaps = data.img_xys_iterator(image_dir=opts.train_image_dir,
                                                       label_dir=opts.label_dir,
                                                       batch_size=opts.batch_size,
-                                                      patch_fraction=opts.patch_fraction,
+                                                      patch_width_height=opts.patch_width_height,
                                                       distort_rgb=True,
                                                       flip_left_right=opts.flip_left_right,
                                                       random_rotation=opts.random_rotate,
@@ -47,7 +48,7 @@ train_imgs, train_xys_bitmaps = data.img_xys_iterator(image_dir=opts.train_image
 test_imgs, test_xys_bitmaps = data.img_xys_iterator(image_dir=opts.test_image_dir,
                                                     label_dir=opts.label_dir,
                                                     batch_size=opts.batch_size,
-                                                    patch_fraction=1,
+                                                    patch_width_height=0,  # i.e. no patchs
                                                     distort_rgb=False,
                                                     flip_left_right=False,
                                                     random_rotation=False,
