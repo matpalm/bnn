@@ -21,10 +21,12 @@ set -ex
     --width 768 --height 1024
 
 # train for a bit...
+# note: this is nowhere near enough to get a good result; just
+#       included for end to end testing
 ./train.py \
     --run r12 \
-    --steps 300 \
-    --train-steps 50 \
+    --steps 100 \
+    --train-steps 10 \
     --train-image-dir sample_data/training/ \
     --test-image-dir sample_data/test/ \
     --label-dir sample_data/labels/ \
