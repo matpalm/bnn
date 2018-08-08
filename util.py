@@ -47,18 +47,9 @@ def debug_img(i, bm, o):
   draw.line([3*w,0,3*w,h], fill='blue')
   return canvas
 
-def explicit_loss_summary(xent_loss, dice_loss):
-  return tf.Summary(value=[
-    tf.Summary.Value(tag="xent_loss", simple_value=xent_loss),
-    tf.Summary.Value(tag="dice_loss", simple_value=dice_loss)
-  ])
-
-def precision_recall_f1_summary(precision, recall, f1):
-  return tf.Summary(value=[
-    tf.Summary.Value(tag="precision", simple_value=precision),
-    tf.Summary.Value(tag="recall", simple_value=recall),
-    tf.Summary.Value(tag="f1", simple_value=f1)
-  ])
+def explicit_summaries(tag_values):
+  values = [tf.Summary.Value(tag=tag, simple_value=value) for tag, value in tag_values.items()]
+  return tf.Summary(value=values)
 
 def pil_image_to_tf_summary(img):
   # serialise png bytes

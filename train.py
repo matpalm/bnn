@@ -112,8 +112,7 @@ for idx in range(opts.steps // opts.train_steps):
                                              train_model.logits, train_model.output,
                                              train_model.xent_loss, train_model.dice_loss,
                                              global_step])
-  print("train logits", logits.shape, np.min(logits), np.max(logits))
-  train_summaries_writer.add_summary(u.explicit_loss_summary(xl, dl), step)
+  train_summaries_writer.add_summary(u.explicit_summaries({"xent": xl}), step)
   debug_img_summary = u.pil_image_to_tf_summary(u.debug_img(i, bm, o))
   train_summaries_writer.add_summary(debug_img_summary, step)
   train_summaries_writer.flush()
@@ -123,14 +122,14 @@ for idx in range(opts.steps // opts.train_steps):
                                      test_model.xent_loss, test_model.dice_loss,
                                      global_step])
 
-  test_summaries_writer.add_summary(u.explicit_loss_summary(xl, dl), step)
-
   set_comparison = u.SetComparison()
   for idx in range(bm.shape[0]):
     true_centroids = u.centroids_of_connected_components(bm[idx])
     predicted_centroids = u.centroids_of_connected_components(o[idx])
     set_comparison.compare_sets(true_centroids, predicted_centroids)
-  test_summaries_writer.add_summary(u.precision_recall_f1_summary(*set_comparison.precision_recall_f1()), step)
+  precision, recall, f1 = set_comparison.precision_recall_f1()
+  tag_values = {"xent": xl, "precision": precision, "recall": recall, "f1": f1}
+  test_summaries_writer.add_summary(u.explicit_summaries(tag_values), step)
 
   debug_img_summary = u.pil_image_to_tf_summary(u.debug_img(i, bm, o))
   test_summaries_writer.add_summary(debug_img_summary, step)
