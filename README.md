@@ -89,7 +89,7 @@ to train for many more steps on much more data)
 --steps 300 \
 --train-steps 50 \
 --train-image-dir sample_data/training/ \
---train-image-dir sample_data/test/ \
+--test-image-dir sample_data/test/ \
 --label-dir sample_data/labels/ \
 --width 768 --height 1024
 ```
