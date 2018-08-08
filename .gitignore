@@ -1,3 +1,5 @@
+predict_examples_r12/
+predictions.db
 bnn_graph.predict.frozen.pb
 bnn_graph.predict.pbtxt
 predict*png

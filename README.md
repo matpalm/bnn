@@ -26,6 +26,8 @@ the `rasp_pi` sub directory includes one method of collecting images on a raspbe
 
 start by using the `label_ui.py` tool to manually label some images and create a sqlite `label.db`
 
+the following command starts the labelling tool for some already labelled (by me!) sample data provided with in this repro.
+
 ```
 ./label_ui.py \
 --image-dir sample_data/training/ \
@@ -49,7 +51,8 @@ you can merge entries from `a.db` into `b.db` with `merge_db.py`
 
 ### training
 
-before training we materialise a `label.db` into bitmaps with `./materialise_label_db.py`
+before training we materialise a `label.db` (which is a database of x,y coords)
+into black and white bitmaps using `./materialise_label_db.py`
 
 ```
 ./materialise_label_db.py \
@@ -58,7 +61,8 @@ before training we materialise a `label.db` into bitmaps with `./materialise_lab
 --width 768 --height 1024
 ```
 
-we can visualise the training data with `data.py`
+we can visualise the training data with `data.py`. this will generate a number of `test*png` files with
+the input data on the left (with data augmentation) and the output labels on the right.
 
 ```
 ./data.py \
@@ -70,15 +74,30 @@ we can visualise the training data with `data.py`
 ![sample_data/test_002_001.png](sample_data/test_002_001.png)
 
 train with `train.py`.
-`run` denotes the subdirectory for ckpts and tensorboard logs; e.g. `--run r12` checkpoints under `ckpts/r12/` and logs under `tb/r12`.
+
+`run` denotes the subdirectory for ckpts and tensorboard logs; e.g. `--run r12` checkpoints
+under `ckpts/r12/` and logs under `tb/r12`.
 
 use `--help` to get complete list of options including model config, defining validation data and stopping conditions.
+
+e.g. to train for a short time on `sample_data` run the following... (for a more realistic result we'd want
+to train for many more steps on much more data)
 
 ```
 ./train.py \
 --run r12 \
+--steps 300 \
+--train-steps 50 \
 --train-image-dir sample_data/training/ \
+--train-image-dir sample_data/test/ \
 --label-dir sample_data/labels/ \
+--width 768 --height 1024
+```
+
+progress can be visualised with tensorboard (serves at <a href="http://localhost:6006">localhost:6006</a>)
+
+```
+tensorboard --log-dir tb
 ```
 
 ### inference
@@ -90,6 +109,9 @@ to specifiy what type of output set one of the following...
 * `--export-pngs centroids` to export output bitmaps equivalent as those made by `./materialise_label_db.py`
 * `--export-pngs predictions` to export explicit model output (i.e. before connected components post processing)
 
+<b>NOTE: given the above step that only runs a short period on a small dataset we DON'T expect this to give
+a great result; these instructions are more included to prove the plumbing works...</b>
+
 ```
 ./predict.py \
 --run r12 \
@@ -98,8 +120,8 @@ to specifiy what type of output set one of the following...
 --export-pngs predictions
 ```
 
-output predictions can be compared to labelled data to calculate precision recall. (we deem a detection correct if it is within
-a thresholded distance from a label)
+output predictions can be compared to labelled data to calculate precision recall.
+(we deem a detection correct if it is within a thresholded distance from a label)
 
 ```
 ./compare_label_dbs.py --true-db ground_truth.db --predicted-db predictions.db
