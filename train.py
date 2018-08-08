@@ -15,8 +15,9 @@ parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFo
 parser.add_argument('--train-image-dir', type=str, default="sample_data/training/", help="training images")
 parser.add_argument('--test-image-dir', type=str, default="sample_data/test/", help="test images")
 parser.add_argument('--label-dir', type=str, default="sample_data/labels/", help="labels for train/test")
-parser.add_argument('--patch-width-height', type=int, default=0,
-                    help="what size square patches to sample. 0 => no patch, i.e. use full res image")
+parser.add_argument('--patch-width-height', type=int, default=None,
+                    help="what size square patches to sample. None => no patch, i.e. use full res image"
+                         " (in which case --width & --height are required)")
 parser.add_argument('--batch-size', type=int, default=32, help=' ')
 parser.add_argument('--learning-rate', type=float, default=0.001, help=' ')
 parser.add_argument('--run', type=str, required=True, help="run dir for tb & ckpts")
@@ -28,8 +29,8 @@ parser.add_argument('--random-rotate', action='store_true', help='randomly rotat
 parser.add_argument('--steps', type=int, default=100000, help='max number of steps (test, summaries every --train-steps)')
 parser.add_argument('--train-steps', type=int, default=100, help='number training steps between test and summaries')
 parser.add_argument('--secs', type=int, default=None, help='If set, max number of seconds to run.')
-parser.add_argument('--width', type=int, default=768, help='input image width')
-parser.add_argument('--height', type=int, default=1024, help='input image height')
+parser.add_argument('--width', type=int, default=None, help='input image width. required if --patch-width-height not set.')
+parser.add_argument('--height', type=int, default=None, help='input image height. required if --patch-width-height not set.')
 opts = parser.parse_args()
 print("opts %s" % opts, file=sys.stderr)
 
@@ -48,7 +49,7 @@ train_imgs, train_xys_bitmaps = data.img_xys_iterator(image_dir=opts.train_image
 test_imgs, test_xys_bitmaps = data.img_xys_iterator(image_dir=opts.test_image_dir,
                                                     label_dir=opts.label_dir,
                                                     batch_size=opts.batch_size,
-                                                    patch_width_height=0,  # i.e. no patchs
+                                                    patch_width_height=None,  # i.e. no patchs
                                                     distort_rgb=False,
                                                     flip_left_right=False,
                                                     random_rotation=False,

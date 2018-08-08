@@ -27,11 +27,9 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, disto
 
   def decode_images(rgb_filename, bitmap_filename):
     rgb = tf.image.decode_image(tf.read_file(rgb_filename))
-    rgb = tf.reshape(rgb, (height, width, 3))
     rgb = tf.cast(rgb, tf.float32)
     rgb = (rgb / 127.5) - 1.0  # -1.0 -> 1.0
     bitmap = tf.image.decode_image(tf.read_file(bitmap_filename))
-    bitmap = tf.reshape(bitmap, (height // 2, width // 2, 1))
     bitmap = tf.cast(bitmap, tf.float32)
     bitmap /= 256  # 0 -> 1
     return rgb, bitmap
@@ -46,11 +44,14 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, disto
   def random_crop(rgb, bitmap):
     # we want to use the same crop for both RGB input and bitmap labels
     patch_width = patch_height = patch_width_height
+    height, width = tf.shape(rgb)[0], tf.shape(rgb)[1]
     offset_height = tf.random_uniform([], 0, height-patch_height, dtype=tf.int32)
     offset_width = tf.random_uniform([], 0, width-patch_width, dtype=tf.int32)
     rgb = tf.image.crop_to_bounding_box(rgb, offset_height, offset_width, patch_height, patch_width)
+    rgb = tf.reshape(rgb, (patch_height, patch_width, 3))
     bitmap = tf.image.crop_to_bounding_box(bitmap, offset_height // 2, offset_width // 2,
                                            patch_height // 2, patch_width // 2 )
+    bitmap = tf.reshape(bitmap, (patch_height // 2, patch_width // 2, 1))
     return rgb, bitmap
 
   def distort(rgb, bitmap):
@@ -66,6 +67,12 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, disto
     return (tf.contrib.image.rotate(rgb, random_rotation_angle, 'BILINEAR'),
             tf.contrib.image.rotate(bitmap, random_rotation_angle, 'BILINEAR'))
 
+  def set_explicit_size(rgb, bitmap):
+    if height is None or width is None:
+      raise Exception(">set_explicit_size requires explicit height/width set when not patch sampling")
+    return (tf.reshape(rgb, (height, width, 3)),
+            tf.reshape(bitmap, (height // 2, width // 2, 1)))
+
   dataset = tf.data.Dataset.from_tensor_slices((tf.constant(rgb_filenames),
                                                 tf.constant(bitmap_filenames)))
 
@@ -77,8 +84,13 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, disto
     print("len(rgb_filenames)", len(rgb_filenames), ("CACHE" if len(rgb_filenames) < 1000 else "NO CACHE"))
     dataset = dataset.shuffle(1000).repeat()
 
-  if patch_width_height > 0:
+  if patch_width_height is not None:
     dataset = dataset.map(random_crop, num_parallel_calls=8)
+  else:
+    # this is clumsy but required for rotation as well as current debugging.
+    # TODO: refactor away from requiring this (and, by implication, --height, --width)
+    dataset = dataset.map(set_explicit_size, num_parallel_calls=8)
+
   if flip_left_right:
     dataset = dataset.map(random_flip_left_right, num_parallel_calls=8)
   if distort_rgb:
@@ -101,11 +113,13 @@ if __name__ == "__main__":
                       help='location of corresponding L label files. (note: we assume for'
                            'each image-dir image there is a label-dir image)')
   parser.add_argument('--batch-size', type=int, default=4)
-  parser.add_argument('--patch-width-height', type=int, default=0,
-                      help="what size square patches to sample. 0 => no patch, i.e. use full res image")
+  parser.add_argument('--patch-width-height', type=int, default=None,
+                      help="what size square patches to sample. None => no patch, i.e. use full res image"
+                           " (in which case --width & --height are required)")
   parser.add_argument('--distort', action='store_true')
-  parser.add_argument('--width', type=int, default=768, help='input image width')
-  parser.add_argument('--height', type=int, default=1024, help='input image height')
+  parser.add_argument('--rotate', action='store_true')
+  parser.add_argument('--width', type=int, default=None, help='input image width. required if --patch-width-height not set.')
+  parser.add_argument('--height', type=int, default=None, help='input image height. required if --patch-width-height not set.')
   opts = parser.parse_args()
   print(opts)
 
@@ -119,7 +133,7 @@ if __name__ == "__main__":
                                 patch_width_height=opts.patch_width_height,
                                 distort_rgb=opts.distort,
                                 flip_left_right=True,
-                                random_rotation=True,
+                                random_rotation=opts.rotate,
                                 repeat=True,
                                 width=opts.width,
                                 height=opts.height)

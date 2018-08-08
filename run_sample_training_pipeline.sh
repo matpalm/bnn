@@ -21,8 +21,8 @@ set -e
 ./data.py \
     --image-dir sample_data/training/ \
     --label-dir sample_data/labels/ \
-    --patch-width-height 256 \
-    --width 768 --height 1024
+    --rotate --distort \
+    --patch-width-height 256
 
 # train for a bit using 256 square patches for training and
 # full resolution for test
