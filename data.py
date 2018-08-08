@@ -95,9 +95,9 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, disto
 if __name__ == "__main__":
   import argparse
   parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-  parser.add_argument('--image-dir', type=str, default='images/201802_sample/training',
+  parser.add_argument('--image-dir', type=str, default='sample_data/training/',
                       help='location of RGB input images')
-  parser.add_argument('--label-dir', type=str, default='labels/201802_sample',
+  parser.add_argument('--label-dir', type=str, default='sample_data/labels/',
                       help='location of corresponding L label files. (note: we assume for'
                            'each image-dir image there is a label-dir image)')
   parser.add_argument('--batch-size', type=int, default=4)

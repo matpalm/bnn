@@ -12,9 +12,9 @@ import util as u
 import time
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--train-image-dir', type=str, default="images/201802_sample/training", help="training images")
-parser.add_argument('--test-image-dir', type=str, default="images/201802_sample/test", help="test images")
-parser.add_argument('--label-dir', type=str, default="labels/201802_sample", help="labels for train/test")
+parser.add_argument('--train-image-dir', type=str, default="sample_data/training/", help="training images")
+parser.add_argument('--test-image-dir', type=str, default="sample_data/test/", help="test images")
+parser.add_argument('--label-dir', type=str, default="sample_data/labels/", help="labels for train/test")
 parser.add_argument('--patch-width-height', type=int, default=0,
                     help="what size square patches to sample. 0 => no patch, i.e. use full res image")
 parser.add_argument('--batch-size', type=int, default=32, help=' ')
