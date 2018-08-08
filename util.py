@@ -65,6 +65,7 @@ def pil_image_to_tf_summary(img):
                                                                    encoded_image_string=png_bytes))])
 
 def dice_loss(y, y_hat, batch_size, smoothing=0):
+  # note: not currently used anywhere...
   y = tf.reshape(y, (batch_size, -1))
   y_hat = tf.reshape(y_hat, (batch_size, -1))
   intersection = y * y_hat

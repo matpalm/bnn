@@ -64,8 +64,7 @@ train_model = model.Model(train_imgs,
                           use_skip_connections=not opts.no_use_skip_connections,
                           base_filter_size=opts.base_filter_size,
                           use_batch_norm=not opts.no_use_batch_norm)
-train_model.calculate_losses_wrt(labels=train_xys_bitmaps,
-                                 batch_size=opts.batch_size)
+train_model.calculate_losses_wrt(labels=train_xys_bitmaps)
 
 print("full res test model...")
 test_model = model.Model(test_imgs,
@@ -73,8 +72,7 @@ test_model = model.Model(test_imgs,
                          use_skip_connections=not opts.no_use_skip_connections,
                          base_filter_size=opts.base_filter_size,
                          use_batch_norm=not opts.no_use_batch_norm)
-test_model.calculate_losses_wrt(labels=test_xys_bitmaps,
-                                batch_size=opts.batch_size)
+test_model.calculate_losses_wrt(labels=test_xys_bitmaps)
 
 global_step = tf.train.get_or_create_global_step()
 
@@ -82,7 +80,7 @@ optimiser = tf.train.AdamOptimizer(learning_rate=opts.learning_rate)
 
 # TODO: reinclude reg loss
 # regularisation_loss = tf.add_n(tf.losses.get_regularization_losses())
-train_op = slim.learning.create_train_op(total_loss = train_model.loss, # + regularisation_loss,
+train_op = slim.learning.create_train_op(total_loss = train_model.xent_loss, # + regularisation_loss,
                                          optimizer = optimiser,
                                          summarize_gradients = False)
 
@@ -100,27 +98,27 @@ start_time = time.time()
 for idx in range(opts.steps // opts.train_steps):
   # train a bit.
   for _ in range(opts.train_steps):
-    _, xl, dl = sess.run([train_op, train_model.xent_loss, train_model.dice_loss])
-  print("idx %d/%d\ttime %d\txent_loss %f\tdice_loss %f" % (idx, opts.steps // opts.train_steps,
-                                                            int(time.time()-start_time),
-                                                            xl, dl))
+    _, xl = sess.run([train_op, train_model.xent_loss])
+  print("idx %d/%d\ttime %d\txent_loss %f" % (idx, opts.steps // opts.train_steps,
+                                              int(time.time()-start_time),
+                                              xl))
 
   # train / test summaries
   # includes loss summaries as well as a hand rolled debug image
   # ...train
-  i, bm, logits, o, xl, dl, step = sess.run([train_imgs, train_xys_bitmaps,
-                                             train_model.logits, train_model.output,
-                                             train_model.xent_loss, train_model.dice_loss,
-                                             global_step])
+  i, bm, logits, o, xl, step = sess.run([train_imgs, train_xys_bitmaps,
+                                         train_model.logits, train_model.output,
+                                         train_model.xent_loss,
+                                         global_step])
   train_summaries_writer.add_summary(u.explicit_summaries({"xent": xl}), step)
   debug_img_summary = u.pil_image_to_tf_summary(u.debug_img(i, bm, o))
   train_summaries_writer.add_summary(debug_img_summary, step)
   train_summaries_writer.flush()
 
   # ... test
-  i, bm, o, xl, dl, step = sess.run([test_imgs, test_xys_bitmaps, test_model.output,
-                                     test_model.xent_loss, test_model.dice_loss,
-                                     global_step])
+  i, bm, o, xl, step = sess.run([test_imgs, test_xys_bitmaps, test_model.output,
+                                 test_model.xent_loss,
+                                 global_step])
 
   set_comparison = u.SetComparison()
   for idx in range(bm.shape[0]):

@@ -89,18 +89,10 @@ class Model(object):
       self.saver = tf.train.Saver(max_to_keep=100,
                                   keep_checkpoint_every_n_hours=1)
 
-  def calculate_losses_wrt(self, labels, batch_size):
+  def calculate_losses_wrt(self, labels):
     self.xent_loss = tf.reduce_mean(
       tf.nn.sigmoid_cross_entropy_with_logits(labels=labels,
                                               logits=self.logits))
-    self.dice_loss = tf.reduce_mean(u.dice_loss(y=labels,
-                                                y_hat=self.output,
-                                                batch_size=batch_size, # clumsy :/
-                                                smoothing=1e-2))
-    # TODO: hmm. no success with dice yet...  (1e-4 would put it magnitude wise ~= xent)
-#    self.loss = 1.0 * self.xent_loss + 0.0 * self.dice_loss
-    self.loss = self.xent_loss
-
 
   def save(self, sess, ckpt_dir):
     if not os.path.exists(ckpt_dir):

@@ -43,24 +43,19 @@ model = model.Model(test_imgs,
                     use_skip_connections=not opts.no_use_skip_connections,
                     base_filter_size=opts.base_filter_size,
                     use_batch_norm=not opts.no_use_batch_norm)
-model.calculate_losses_wrt(labels=test_xys_bitmaps,
-                           batch_size=opts.batch_size)
+model.calculate_losses_wrt(labels=test_xys_bitmaps)
 
 sess = tf.Session()
 model.restore(sess, "ckpts/%s" % opts.run)
 
-dice = []
 xent = []
 for idx in itertools.count():
   try:
-    dice_l, xent_l = sess.run([model.dice_loss, model.xent_loss])
-    dice.append(dice_l)
-    xent.append(xent_l)
+    xent.append(sess.run(model.xent_loss))
   except tf.errors.OutOfRangeError:
     # end of iterator
     break
 
 # TODO: there must be a pandas version of this...
 print("      %6s %6s %6s %6s" % ("min", "max", "mean", "std"))
-print("dice  %0.4f %0.4f %0.4f %0.4f" % (np.min(dice), np.max(dice), np.mean(dice), np.std(dice)))
 print("xent  %0.4f %0.4f %0.4f %0.4f" % (np.min(xent), np.max(xent), np.mean(xent), np.std(xent)))
