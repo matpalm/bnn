@@ -4,6 +4,7 @@ import io
 import numpy as np
 import tensorflow as tf
 import math
+import sys
 
 def hms(secs):
   if secs < 0:
@@ -207,3 +208,21 @@ class SetComparison(object):
       return precision, recall, f1
     except ZeroDivisionError:
       return 0, 0, 0
+def check_images(fnames):
+  prev_width, prev_height = 0, 0
+  for i, fname in enumerate(fnames):
+    try:
+      im = Image.open(fname)
+    except IOError as e:
+      print("Image is corrupted or does not exist:", fname)
+      raise e
+      # sys.exit()
+    
+    width, height = im.size
+    if i == 0:
+      prev_width = width
+      prev_height = height
+    elif not prev_width == width or not prev_height == height:
+      print("Image size does not match others:", fname, "wh:", width, height)
+      exit()
+  return width, height
