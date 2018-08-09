@@ -1,15 +1,10 @@
 #!/usr/bin/env python3
 
-# given a directory of images and labels output some stats
+# given a directory of images and labels output overall P/R/F1 for entire set
 
-from PIL import Image, ImageDraw
 import argparse
 import data
-import itertools
-from label_db import LabelDB
 import model
-import numpy as np
-import os
 import tensorflow as tf
 import util as u
 
@@ -37,25 +32,28 @@ test_imgs, test_xys_bitmaps = data.img_xys_iterator(image_dir=opts.image_dir,
                                                     repeat=False,
                                                     width=opts.width,
                                                     height=opts.height)
-
 model = model.Model(test_imgs,
                     is_training=False,
                     use_skip_connections=not opts.no_use_skip_connections,
                     base_filter_size=opts.base_filter_size,
                     use_batch_norm=not opts.no_use_batch_norm)
-model.calculate_losses_wrt(labels=test_xys_bitmaps)
 
 sess = tf.Session()
 model.restore(sess, "ckpts/%s" % opts.run)
 
-xent = []
-for idx in itertools.count():
+set_comparison = u.SetComparison()
+num_imgs = 0
+while True:
   try:
-    xent.append(sess.run(model.xent_loss))
+    true_bitmaps, predicted_bitmaps = sess.run([test_xys_bitmaps, model.output])
+    iterator_batch_size = true_bitmaps.shape[0]  # note: final one may be < opts.batch_size
+    num_imgs += iterator_batch_size
+    for idx in range(iterator_batch_size):
+      true_centroids = u.centroids_of_connected_components(true_bitmaps[idx])  # this is dumb; should do against label db!
+      predicted_centroids = u.centroids_of_connected_components(predicted_bitmaps[idx])
+      tp, fn, fp = set_comparison.compare_sets(true_centroids, predicted_centroids)
   except tf.errors.OutOfRangeError:
     # end of iterator
     break
 
-# TODO: there must be a pandas version of this...
-print("      %6s %6s %6s %6s" % ("min", "max", "mean", "std"))
-print("xent  %0.4f %0.4f %0.4f %0.4f" % (np.min(xent), np.max(xent), np.mean(xent), np.std(xent)))
+print("final stats over %d images: precision %0.2f recall %0.2f f1 %0.2f" % (num_imgs, *set_comparison.precision_recall_f1()))
