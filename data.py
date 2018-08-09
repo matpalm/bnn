@@ -11,7 +11,7 @@ import tensorflow as tf
 import util as u
 
 def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, distort_rgb,
-                     flip_left_right, random_rotation, repeat, width, height):
+                     flip_left_right, random_rotation, repeat, width, height, one_shot=True):
   # return dataset of (image, xys_bitmap) for training
 
   # materialise list of rgb filenames and corresponding numpy bitmaps
@@ -97,12 +97,21 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, disto
     dataset = dataset.map(distort, num_parallel_calls=8)
   if random_rotation:
     dataset = dataset.map(rotate, num_parallel_calls=8)
-  return (dataset.
-          batch(batch_size).
-          prefetch(1).
-          make_one_shot_iterator().
-          get_next())
 
+  if one_shot:
+    # return just output tensors from one shot, already inited, iterator
+    return (dataset.
+            batch(batch_size).
+            prefetch(1).
+            make_one_shot_iterator().
+            get_next())
+  else:
+    # return output tensors _and_ init op
+    iterator = (dataset.
+                batch(batch_size).
+                prefetch(1).
+                make_initializable_iterator())
+    return (iterator.initializer, iterator.get_next())
 
 if __name__ == "__main__":
   import argparse

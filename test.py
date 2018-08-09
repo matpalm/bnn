@@ -21,17 +21,21 @@ parser.add_argument('--height', type=int, default=1024, help='input image height
 opts = parser.parse_args()
 print(opts)
 
+# TODO: use of a reinitable iterator here is currently overkill since only using it once
+#       (if nothing else this stands as an example of how to use it in while True style eval (TODO))
+
 # test data reader
-test_imgs, test_xys_bitmaps = data.img_xys_iterator(image_dir=opts.image_dir,
-                                                    label_dir=opts.label_dir,
-                                                    batch_size=opts.batch_size,
-                                                    patch_width_height=None,  # i.e. no patchs
-                                                    distort_rgb=False,
-                                                    flip_left_right=False,
-                                                    random_rotation=False,
-                                                    repeat=False,
-                                                    width=opts.width,
-                                                    height=opts.height)
+iter_init_op, (test_imgs, test_xys_bitmaps) = data.img_xys_iterator(image_dir=opts.image_dir,
+                                                                    label_dir=opts.label_dir,
+                                                                    batch_size=opts.batch_size,
+                                                                    patch_width_height=None,  # i.e. no patchs
+                                                                    distort_rgb=False,
+                                                                    flip_left_right=False,
+                                                                    random_rotation=False,
+                                                                    repeat=False,
+                                                                    width=opts.width,
+                                                                    height=opts.height,
+                                                                    one_shot=False)
 model = model.Model(test_imgs,
                     is_training=False,
                     use_skip_connections=not opts.no_use_skip_connections,
@@ -40,6 +44,8 @@ model = model.Model(test_imgs,
 
 sess = tf.Session()
 model.restore(sess, "ckpts/%s" % opts.run)
+
+sess.run(iter_init_op)
 
 set_comparison = u.SetComparison()
 num_imgs = 0
