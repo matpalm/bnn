@@ -29,8 +29,6 @@ parser.add_argument('--random-rotate', action='store_true', help='randomly rotat
 parser.add_argument('--steps', type=int, default=100000, help='max number of steps (test, summaries every --train-steps)')
 parser.add_argument('--train-steps', type=int, default=100, help='number training steps between test and summaries')
 parser.add_argument('--secs', type=int, default=None, help='If set, max number of seconds to run.')
-parser.add_argument('--width', type=int, default=None, help='input image width. required if --patch-width-height not set.')
-parser.add_argument('--height', type=int, default=None, help='input image height. required if --patch-width-height not set.')
 opts = parser.parse_args()
 print("opts %s" % opts, file=sys.stderr)
 
@@ -44,8 +42,7 @@ train_imgs, train_xys_bitmaps = data.img_xys_iterator(image_dir=opts.train_image
                                                       distort_rgb=True,
                                                       flip_left_right=opts.flip_left_right,
                                                       random_rotation=opts.random_rotate,
-                                                      repeat=True,
-                                                      width=opts.width, height=opts.height)
+                                                      repeat=True)
 test_imgs, test_xys_bitmaps = data.img_xys_iterator(image_dir=opts.test_image_dir,
                                                     label_dir=opts.label_dir,
                                                     batch_size=opts.batch_size,
@@ -53,10 +50,11 @@ test_imgs, test_xys_bitmaps = data.img_xys_iterator(image_dir=opts.test_image_di
                                                     distort_rgb=False,
                                                     flip_left_right=False,
                                                     random_rotation=False,
-                                                    repeat=True,
-                                                    width=opts.width, height=opts.height)
-print(test_imgs.get_shape())
-print(test_xys_bitmaps.get_shape())
+                                                    repeat=True)
+print("Train image `shape:", train_imgs.get_shape())
+print("Train bmp shape:", train_xys_bitmaps.get_shape())
+print("Test image `shape:", test_imgs.get_shape())
+print("test bmp shape:", test_xys_bitmaps.get_shape())
 
 # Build training and test model with same params.
 # TODO: opts for skip and base filters

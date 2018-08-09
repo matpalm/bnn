@@ -11,7 +11,7 @@ import tensorflow as tf
 import util as u
 
 def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, distort_rgb,
-                     flip_left_right, random_rotation, repeat, width, height):
+                     flip_left_right, random_rotation, repeat):
   # return dataset of (image, xys_bitmap) for training
 
   # materialise list of rgb filenames and corresponding numpy bitmaps
@@ -24,6 +24,9 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, disto
   for fname in fnames:
     rgb_filenames.append("%s/%s" % (image_dir, fname))
     bitmap_filenames.append("%s/%s" % (label_dir, fname.replace(".jpg", ".png")))
+
+  # check images are valid and compute width and height
+  width, height = u.check_images(rgb_filenames)
 
   def decode_images(rgb_filename, bitmap_filename):
     rgb = tf.image.decode_image(tf.read_file(rgb_filename))
@@ -107,9 +110,9 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, disto
 if __name__ == "__main__":
   import argparse
   parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-  parser.add_argument('--image-dir', type=str, default='sample_data/training/',
+  parser.add_argument('-i', '--image-dir', type=str, default='sample_data/training/',
                       help='location of RGB input images')
-  parser.add_argument('--label-dir', type=str, default='sample_data/labels/',
+  parser.add_argument('-l', '--label-dir', type=str, default='sample_data/labels/',
                       help='location of corresponding L label files. (note: we assume for'
                            'each image-dir image there is a label-dir image)')
   parser.add_argument('--batch-size', type=int, default=4)
@@ -118,8 +121,6 @@ if __name__ == "__main__":
                            " (in which case --width & --height are required)")
   parser.add_argument('--distort', action='store_true')
   parser.add_argument('--rotate', action='store_true')
-  parser.add_argument('--width', type=int, default=None, help='input image width. required if --patch-width-height not set.')
-  parser.add_argument('--height', type=int, default=None, help='input image height. required if --patch-width-height not set.')
   opts = parser.parse_args()
   print(opts)
 
@@ -134,9 +135,7 @@ if __name__ == "__main__":
                                 distort_rgb=opts.distort,
                                 flip_left_right=True,
                                 random_rotation=opts.rotate,
-                                repeat=True,
-                                width=opts.width,
-                                height=opts.height)
+                                repeat=True)
 
   for b in range(3):
     img_batch, xys_batch = sess.run([imgs, xyss])
