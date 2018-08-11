@@ -16,8 +16,7 @@ parser.add_argument('--train-image-dir', type=str, default="sample_data/training
 parser.add_argument('--test-image-dir', type=str, default="sample_data/test/", help="test images")
 parser.add_argument('--label-dir', type=str, default="sample_data/labels/", help="labels for train/test")
 parser.add_argument('--patch-width-height', type=int, default=None,
-                    help="what size square patches to sample. None => no patch, i.e. use full res image"
-                         " (in which case --width & --height are required)")
+                    help="what size square patches to sample. None => no patch, i.e. use full res image")
 parser.add_argument('--batch-size', type=int, default=32, help=' ')
 parser.add_argument('--learning-rate', type=float, default=0.001, help=' ')
 parser.add_argument('--run', type=str, required=True, help="run dir for tb & ckpts")
@@ -28,9 +27,9 @@ parser.add_argument('--flip-left-right', action='store_true', help='randomly fli
 parser.add_argument('--random-rotate', action='store_true', help='randomly rotate training images')
 parser.add_argument('--steps', type=int, default=100000, help='max number of steps (test, summaries every --train-steps)')
 parser.add_argument('--train-steps', type=int, default=100, help='number training steps between test and summaries')
-parser.add_argument('--secs', type=int, default=None, help='If set, max number of seconds to run.')
-parser.add_argument('--width', type=int, default=None, help='input image width. required if --patch-width-height not set.')
-parser.add_argument('--height', type=int, default=None, help='input image height. required if --patch-width-height not set.')
+parser.add_argument('--secs', type=int, default=None, help='If set, max number of seconds to run')
+parser.add_argument('--width', type=int, default=None, help='test input image width')
+parser.add_argument('--height', type=int, default=None, help='test input image height')
 opts = parser.parse_args()
 print("opts %s" % opts, file=sys.stderr)
 
