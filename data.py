@@ -15,15 +15,16 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, disto
   # return dataset of (image, xys_bitmap) for training
 
   # materialise list of rgb filenames and corresponding numpy bitmaps
-  # (lazy load actual image from filenames as required, but with caching)
   rgb_filenames = []     # (H, W, 3) jpgs
   bitmap_filenames = []  # (H/2, W/2, 1) pngs
-
-  fnames = os.listdir(image_dir)
-  random.shuffle(fnames)
-  for fname in fnames:
-    rgb_filenames.append("%s/%s" % (image_dir, fname))
-    bitmap_filenames.append("%s/%s" % (label_dir, fname.replace(".jpg", ".png")))
+  for fname in os.listdir(image_dir):
+    rgb_filename = "%s/%s" % (image_dir, fname)
+    rgb_filenames.append(rgb_filename)
+    bitmap_filename = "%s/%s" % (label_dir, fname.replace(".jpg", ".png"))
+    if not os.path.isfile(bitmap_filename):
+      raise Exception("label bitmap img [%s] doesn't exist for training example [%s]. did you run materialise_label_db.py?"
+                      % (bitmap_filename, rgb_filename))
+    bitmap_filenames.append(bitmap_filename)
 
   def decode_images(rgb_filename, bitmap_filename):
     rgb = tf.image.decode_image(tf.read_file(rgb_filename))
