@@ -1,3 +1,6 @@
+da_*out
+da_*db
+*manifest
 predict_examples_r12/
 predictions.db
 bnn_graph.predict.frozen.pb
