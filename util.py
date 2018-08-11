@@ -208,6 +208,7 @@ class SetComparison(object):
       return precision, recall, f1
     except ZeroDivisionError:
       return 0, 0, 0
+
 def check_images(fnames):
   prev_width, prev_height = 0, 0
   for i, fname in enumerate(fnames):
@@ -217,7 +218,7 @@ def check_images(fnames):
       print("Image is corrupted or does not exist:", fname)
       raise e
       # sys.exit()
-    
+
     width, height = im.size
     if i == 0:
       prev_width = width
@@ -226,3 +227,13 @@ def check_images(fnames):
       print("Image size does not match others:", fname, "wh:", width, height)
       exit()
   return width, height
+
+def shuffled_endless_generator(l):
+  l_copy = l.copy()
+  while True:
+    random.shuffle(l_copy)
+    for element in l_copy:
+      yield element
+
+def n_tiles(v, n=10):
+  return np.percentile(v, np.linspace(0, 100, n+1))
