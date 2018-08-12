@@ -32,34 +32,44 @@ def xys_to_bitmap(xys, height, width, rescale=1.0):
 
 def debug_img(i, bm, o):
   # create a debug image with three columns; 1) original RGB. 2) black/white
-  # bitmap of labels 3) black/white bitmap of predictions
+  # bitmap of labels 3) black/white bitmap of predictions (with centroids coloured
+  # red. we expect i, bm and o to be a batch but we just use first element
   _bs, h, w, _c = bm.shape
   canvas = Image.new('RGB', (w*3, h), (50, 50, 50))
+  # original input image on left
   i = zero_centered_array_to_pil_image(i[0])
   i = i.resize((w, h))
   canvas.paste(i, (0, 0))
+  # label bitmap in center
   bm = bitmap_to_pil_image(bm[0])
   canvas.paste(bm, (w, 0))
-  o = bitmap_to_pil_image(o[0])
-  canvas.paste(o, (w*2, 0))
+  # logistic output on right
+  logistic_output = bitmap_to_pil_image(o[0])
+  canvas.paste(logistic_output, (w*2, 0))
+  # draw red dots on right hand side image corresponding to
+  # final thresholded prediction
   draw = ImageDraw.Draw(canvas)
+  for y, x in centroids_of_connected_components(o[0]):
+    draw.rectangle((w*2+x,y,w*2+x,y), fill='red')
+  # finally draw blue lines between the three to delimit boundaries
   draw.line([w,0,w,h], fill='blue')
   draw.line([2*w,0,2*w,h], fill='blue')
   draw.line([3*w,0,3*w,h], fill='blue')
+  # done
   return canvas
 
 def explicit_summaries(tag_values):
   values = [tf.Summary.Value(tag=tag, simple_value=value) for tag, value in tag_values.items()]
   return tf.Summary(value=values)
 
-def pil_image_to_tf_summary(img):
+def pil_image_to_tf_summary(img, tag="debug_img"):
   # serialise png bytes
   sio = io.BytesIO()
   img.save(sio, format="png")
   png_bytes = sio.getvalue()
 
   # https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/framework/summary.proto
-  return tf.Summary(value=[tf.Summary.Value(tag="debug_img",
+  return tf.Summary(value=[tf.Summary.Value(tag=tag,
                                             image=tf.Summary.Image(height=img.size[0],
                                                                    width=img.size[1],
                                                                    colorspace=3, # RGB
@@ -79,6 +89,7 @@ def dice_loss(y, y_hat, batch_size, smoothing=0):
   return loss
 
 def centroids_of_connected_components(bitmap, threshold=0.05, rescale=1.0):
+  # TODO: hunt down the x/y swap between PIL and label db :/
   # threshold
   mask = bitmap > threshold
   bitmap = np.zeros_like(bitmap)
