@@ -25,7 +25,7 @@ parser.add_argument('--no-use-batch-norm', action='store_true', help='set to dis
 parser.add_argument('--base-filter-size', type=int, default=8, help=' ')
 parser.add_argument('--flip-left-right', action='store_true', help='randomly flip training egs left/right')
 parser.add_argument('--random-rotate', action='store_true', help='randomly rotate training images')
-parser.add_argument('--steps', type=int, default=100000, help='max number of steps (test, summaries every --train-steps)')
+parser.add_argument('--steps', type=int, default=100000, help='max number of training steps (summaries every --train-steps)')
 parser.add_argument('--train-steps', type=int, default=100, help='number training steps between test and summaries')
 parser.add_argument('--secs', type=int, default=None, help='If set, max number of seconds to run')
 parser.add_argument('--width', type=int, default=None, help='test input image width')
@@ -96,35 +96,40 @@ train_summaries_writer = tf.summary.FileWriter("tb/%s/training" % opts.run, sess
 test_summaries_writer = tf.summary.FileWriter("tb/%s/test" % opts.run, sess.graph)
 
 start_time = time.time()
-for idx in range(opts.steps // opts.train_steps):
+done = False
+while not done:
+
   # train a bit.
   for _ in range(opts.train_steps):
     _, xl = sess.run([train_op, train_model.xent_loss])
-  print("idx %d/%d\ttime %d\txent_loss %f" % (idx, opts.steps // opts.train_steps,
-                                              int(time.time()-start_time),
-                                              xl))
+
+  # fetch global_step
+  step = sess.run(global_step)
+
+  # report one liner
+  print("step %d/%d\ttime %d\txent_loss %f" % (step, opts.steps,
+                                               int(time.time()-start_time),
+                                               xl))
 
   # train / test summaries
   # includes loss summaries as well as a hand rolled debug image
   # ...train
-  i, bm, logits, o, xl, step = sess.run([train_imgs, train_xys_bitmaps,
-                                         train_model.logits, train_model.output,
-                                         train_model.xent_loss,
-                                         global_step])
+  i, bm, logits, o, xl = sess.run([train_imgs, train_xys_bitmaps,
+                                   train_model.logits, train_model.output,
+                                   train_model.xent_loss])
   train_summaries_writer.add_summary(u.explicit_summaries({"xent": xl}), step)
   debug_img_summary = u.pil_image_to_tf_summary(u.debug_img(i, bm, o))
   train_summaries_writer.add_summary(debug_img_summary, step)
   train_summaries_writer.flush()
 
   # ... test
-  i, bm, o, xl, step = sess.run([test_imgs, test_xys_bitmaps, test_model.output,
-                                 test_model.xent_loss,
-                                 global_step])
+  i, bm, o, xl = sess.run([test_imgs, test_xys_bitmaps, test_model.output,
+                           test_model.xent_loss])
 
   set_comparison = u.SetComparison()
-  for idx in range(bm.shape[0]):
-    true_centroids = u.centroids_of_connected_components(bm[idx])
-    predicted_centroids = u.centroids_of_connected_components(o[idx])
+  for batch_idx in range(bm.shape[0]):
+    true_centroids = u.centroids_of_connected_components(bm[batch_idx])
+    predicted_centroids = u.centroids_of_connected_components(o[batch_idx])
     set_comparison.compare_sets(true_centroids, predicted_centroids)
   precision, recall, f1 = set_comparison.precision_recall_f1()
   tag_values = {"xent": xl, "precision": precision, "recall": recall, "f1": f1}
@@ -137,9 +142,12 @@ for idx in range(opts.steps // opts.train_steps):
   # save checkpoint
   train_model.save(sess, "ckpts/%s" % opts.run)
 
-  # check max time to run (if set)
+  # check if done by steps or time
+  if step >= opts.steps:
+    done = True
   if opts.secs is not None:
     run_time = time.time() - start_time
     remaining_time = opts.secs - run_time
     print("run_time %s remaining_time %s" % (u.hms(run_time), u.hms(remaining_time)))
-    if remaining_time < 0: exit()
+    if remaining_time < 0:
+      done = True
