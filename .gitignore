@@ -1,3 +1,5 @@
+maml_*out
+maml_*db
 da_*out
 da_*db
 *manifest
