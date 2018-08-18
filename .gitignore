@@ -3,7 +3,7 @@ maml_*db
 da_*out
 da_*db
 *manifest
-predict_examples_r12/
+predict_examples
 predictions.db
 bnn_graph.predict.frozen.pb
 bnn_graph.predict.pbtxt

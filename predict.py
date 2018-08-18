@@ -3,17 +3,20 @@
 # given a directory of images output a list of image -> predictions
 
 from PIL import Image, ImageDraw
+from label_db import LabelDB
 import argparse
 import itertools
-from label_db import LabelDB
 import model
 import numpy as np
 import os
+import random
 import tensorflow as tf
 import util as u
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--image-dir', type=str, required=True)
+parser.add_argument('--num', type=int, default=None,
+                    help='if set run prediction for this many random images. if not set run for all')
 parser.add_argument('--output-label-db', type=str, default=None, help='if not set dont write label_db')
 parser.add_argument('--run', type=str, required=True, help='model, also used as subdir for export-pngs')
 parser.add_argument('--no-use-skip-connections', action='store_true')
@@ -45,13 +48,19 @@ else:
   db = None
 
 if opts.export_pngs:
-  export_dir = "predict_examples_%s" % opts.run
+  export_dir = "predict_examples/%s" % opts.run
+  print("exporting prediction samples to [%s]" % export_dir)
   if not os.path.exists(export_dir):
     os.makedirs(export_dir)
 
 # TODO: make this batched to speed it up for larger runs
 
-for idx, filename in enumerate(sorted(os.listdir(opts.image_dir))):
+imgs = os.listdir(opts.image_dir)
+if opts.num is not None:
+  assert opts.num > 0
+  imgs = random.sample(imgs, opts.num)
+
+for idx, filename in enumerate(sorted(imgs)):
 
   # load next image (and add dummy batch dimension)
   img = np.array(Image.open(opts.image_dir+"/"+filename))  # uint8 0->255
@@ -67,7 +76,7 @@ for idx, filename in enumerate(sorted(os.listdir(opts.image_dir))):
                                                     rescale=2.0,
                                                     threshold=opts.connected_components_threshold)
 
-    print("\t".join(map(str, ["X", idx, filename, len(centroids)])))
+    print("\t".join(map(str, [idx, filename, len(centroids)])))
 
     # export some debug image (if requested)
     if opts.export_pngs != '':
