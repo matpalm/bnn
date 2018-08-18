@@ -35,13 +35,6 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, disto
     bitmap /= 256  # 0 -> 1
     return rgb, bitmap
 
-  def random_flip_left_right(rgb, bitmap):
-    random = tf.random_uniform([], 0, 1, dtype=tf.float32)
-    return tf.cond(random < 0.5,
-                   lambda: (rgb, bitmap),
-                   lambda: (tf.image.flip_left_right(rgb),
-                            tf.image.flip_left_right(bitmap)))
-
   def random_crop(rgb, bitmap):
     # we want to use the same crop for both RGB input and bitmap labels
     patch_width = patch_height = patch_width_height
@@ -55,18 +48,26 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, disto
     bitmap = tf.reshape(bitmap, (patch_height // 2, patch_width // 2, 1))
     return rgb, bitmap
 
-  def distort(rgb, bitmap):
-    rgb = tf.image.random_brightness(rgb, 0.1)
-    rgb = tf.image.random_contrast(rgb, 0.9, 1.1)
-#    rgb = tf.image.per_image_standardization(rgb)  # works great, but how to have it done for predict?
-    rgb = tf.clip_by_value(rgb, clip_value_min=-1.0, clip_value_max=1.0)
-    return rgb, bitmap
+  def augment(rgb, bitmap):
+    if flip_left_right:
+      random = tf.random_uniform([], 0, 1, dtype=tf.float32)
+      rgb, bitmap = tf.cond(random < 0.5,
+                            lambda: (rgb, bitmap),
+                            lambda: (tf.image.flip_left_right(rgb),
+                                     tf.image.flip_left_right(bitmap)))
+    if distort_rgb:
+      rgb = tf.image.random_brightness(rgb, 0.1)
+      rgb = tf.image.random_contrast(rgb, 0.9, 1.1)
+      #    rgb = tf.image.per_image_standardization(rgb)  # works great, but how to have it done for predict?
+      rgb = tf.clip_by_value(rgb, clip_value_min=-1.0, clip_value_max=1.0)
 
-  def rotate(rgb, bitmap):
-    # we want to use the same crop for both RGB input and bitmap labels
-    random_rotation_angle = tf.random_uniform([], -0.4, 0.4, dtype=tf.float32)
-    return (tf.contrib.image.rotate(rgb, random_rotation_angle, 'BILINEAR'),
-            tf.contrib.image.rotate(bitmap, random_rotation_angle, 'BILINEAR'))
+    if random_rotation:
+      # we want to use the same crop for both RGB input and bitmap labels
+      random_rotation_angle = tf.random_uniform([], -0.4, 0.4, dtype=tf.float32)
+      rgb, bitmap = (tf.contrib.image.rotate(rgb, random_rotation_angle, 'BILINEAR'),
+                     tf.contrib.image.rotate(bitmap, random_rotation_angle, 'BILINEAR'))
+
+    return rgb, bitmap
 
   def set_explicit_size(rgb, bitmap):
     if height is None or width is None:
@@ -92,12 +93,8 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, disto
     # TODO: refactor away from requiring this (and, by implication, --height, --width)
     dataset = dataset.map(set_explicit_size, num_parallel_calls=8)
 
-  if flip_left_right:
-    dataset = dataset.map(random_flip_left_right, num_parallel_calls=8)
-  if distort_rgb:
-    dataset = dataset.map(distort, num_parallel_calls=8)
-  if random_rotation:
-    dataset = dataset.map(rotate, num_parallel_calls=8)
+  if flip_left_right or distort_rgb or random_rotation:
+    dataset = dataset.map(augment, num_parallel_calls=8)
 
   if one_shot:
     # return just output tensors from one shot, already inited, iterator
