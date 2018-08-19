@@ -9,6 +9,7 @@ import sys
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 import util as u
+import test
 import time
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -35,7 +36,7 @@ print("opts %s" % opts, file=sys.stderr)
 
 np.set_printoptions(precision=2, threshold=10000, suppress=True, linewidth=10000)
 
-# Build readers for train and test data.
+# Build readers / model for training
 train_imgs, train_xys_bitmaps = data.img_xys_iterator(image_dir=opts.train_image_dir,
                                                       label_dir=opts.label_dir,
                                                       batch_size=opts.batch_size,
@@ -45,20 +46,7 @@ train_imgs, train_xys_bitmaps = data.img_xys_iterator(image_dir=opts.train_image
                                                       random_rotation=opts.random_rotate,
                                                       repeat=True,
                                                       width=opts.width, height=opts.height)
-test_imgs, test_xys_bitmaps = data.img_xys_iterator(image_dir=opts.test_image_dir,
-                                                    label_dir=opts.label_dir,
-                                                    batch_size=opts.batch_size,
-                                                    patch_width_height=None,  # i.e. no patchs
-                                                    distort_rgb=False,
-                                                    flip_left_right=False,
-                                                    random_rotation=False,
-                                                    repeat=True,
-                                                    width=opts.width, height=opts.height)
-print(test_imgs.get_shape())
-print(test_xys_bitmaps.get_shape())
 
-# Build training and test model with same params.
-# TODO: opts for skip and base filters
 print("patch train model...")
 train_model = model.Model(train_imgs,
                           is_training=True,
@@ -68,12 +56,10 @@ train_model = model.Model(train_imgs,
 train_model.calculate_losses_wrt(labels=train_xys_bitmaps)
 
 print("full res test model...")
-test_model = model.Model(test_imgs,
-                         is_training=False,
-                         use_skip_connections=not opts.no_use_skip_connections,
-                         base_filter_size=opts.base_filter_size,
-                         use_batch_norm=not opts.no_use_batch_norm)
-test_model.calculate_losses_wrt(labels=test_xys_bitmaps)
+tester = test.ModelTester(opts.test_image_dir, opts.label_dir,
+                          opts.batch_size, opts.width, opts.height,
+                          opts.no_use_skip_connections, opts.base_filter_size,
+                          opts.no_use_batch_norm)
 
 global_step = tf.train.get_or_create_global_step()
 
@@ -101,10 +87,10 @@ while not done:
 
   # train a bit.
   for _ in range(opts.train_steps):
-    _, xl = sess.run([train_op, train_model.xent_loss])
+    sess.run(train_op)
 
-  # fetch global_step
-  step = sess.run(global_step)
+  # fetch global_step & xent_loss
+  step, xl = sess.run([global_step, train_model.xent_loss])
 
   # report one liner
   print("step %d/%d\ttime %d\txent_loss %f" % (step, opts.steps,
@@ -113,34 +99,28 @@ while not done:
 
   # train / test summaries
   # includes loss summaries as well as a hand rolled debug image
+
   # ...train
   i, bm, logits, o, xl = sess.run([train_imgs, train_xys_bitmaps,
                                    train_model.logits, train_model.output,
                                    train_model.xent_loss])
   train_summaries_writer.add_summary(u.explicit_summaries({"xent": xl}), step)
-  debug_img_summary = u.pil_image_to_tf_summary(u.debug_img(i, bm, o))
+  debug_img_summary = u.pil_image_to_tf_summary(u.debug_img(i[0], bm[0], o[0]))
   train_summaries_writer.add_summary(debug_img_summary, step)
   train_summaries_writer.flush()
 
+  # save checkpoint (to be reloaded by test)
+  # TODO: this is clumsy; need to refactor test to use current session instead
+  #       of loading entirely new one... will do for now.
+  train_model.save(sess, "ckpts/%s" % opts.run)
+
   # ... test
-  i, bm, o, xl = sess.run([test_imgs, test_xys_bitmaps, test_model.output,
-                           test_model.xent_loss])
-
-  set_comparison = u.SetComparison()
-  for batch_idx in range(bm.shape[0]):
-    true_centroids = u.centroids_of_connected_components(bm[batch_idx])
-    predicted_centroids = u.centroids_of_connected_components(o[batch_idx])
-    set_comparison.compare_sets(true_centroids, predicted_centroids)
-  precision, recall, f1 = set_comparison.precision_recall_f1()
-  tag_values = {"xent": xl, "precision": precision, "recall": recall, "f1": f1}
+  stats = tester.test(opts.run)
+  tag_values = {k: stats[k] for k in ['precision', 'recall', 'f1']}
   test_summaries_writer.add_summary(u.explicit_summaries(tag_values), step)
-
-  debug_img_summary = u.pil_image_to_tf_summary(u.debug_img(i, bm, o))
+  debug_img_summary = u.pil_image_to_tf_summary(stats['debug_img'])
   test_summaries_writer.add_summary(debug_img_summary, step)
   test_summaries_writer.flush()
-
-  # save checkpoint
-  train_model.save(sess, "ckpts/%s" % opts.run)
 
   # check if done by steps or time
   if step >= opts.steps:

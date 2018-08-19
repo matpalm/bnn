@@ -5,11 +5,11 @@
 import data
 import model
 import numpy as np
+import random
 import tensorflow as tf
 import util as u
 
-
-class Tester(object):
+class ModelTester(object):
 
   def __init__(self, image_dir, label_dir, batch_size, width, height,
                no_use_skip_connections, base_filter_size, no_use_batch_norm):
@@ -49,23 +49,22 @@ class Tester(object):
       debug_img = None  # created on first call
       while True:
         try:
-
-          iterator_batch_size = true_bitmaps.shape[0]  # note: final one may be < batch_size
-
           if debug_img is None:
             # fetch imgs as well to create debug_img
             imgs, true_bitmaps, predicted_bitmaps, xent_loss = sess.run([self.test_imgs,
                                                                          self.test_xys_bitmaps,
                                                                          self.model.output,
                                                                          self.model.xent_loss])
-            debug_img = u.debug_img(imgs, true_bitmaps, predicted_bitmaps)
+            # choose a random element from batch
+            idx = random.randint(0, true_bitmaps.shape[0]-1)
+            debug_img = u.debug_img(imgs[idx], true_bitmaps[idx], predicted_bitmaps[idx])
           else:
             true_bitmaps, predicted_bitmaps, xent_loss = sess.run([self.test_xys_bitmaps,
                                                                    self.model.output,
                                                                    self.model.xent_loss])
 
           xent_losses.append(xent_loss)
-
+          iterator_batch_size = true_bitmaps.shape[0]
           num_imgs += iterator_batch_size
 
           for idx in range(iterator_batch_size):
@@ -102,14 +101,14 @@ if __name__ == "__main__":
   opts = parser.parse_args()
   print(opts)
 
-  tester = Tester(image_dir=opts.image_dir,
-                  label_dir=opts.label_dir,
-                  batch_size=opts.batch_size,
-                  width=opts.width,
-                  height=opts.height,
-                  no_use_skip_connections=opts.no_use_skip_connections,
-                  base_filter_size=opts.base_filter_size,
-                  no_use_batch_norm=opts.no_use_batch_norm)
+  tester = ModelTester(image_dir=opts.image_dir,
+                       label_dir=opts.label_dir,
+                       batch_size=opts.batch_size,
+                       width=opts.width,
+                       height=opts.height,
+                       no_use_skip_connections=opts.no_use_skip_connections,
+                       base_filter_size=opts.base_filter_size,
+                       no_use_batch_norm=opts.no_use_batch_norm)
 
   stats = tester.test(opts.run)
 

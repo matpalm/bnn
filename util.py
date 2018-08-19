@@ -30,26 +30,24 @@ def xys_to_bitmap(xys, height, width, rescale=1.0):
       raise e
   return bitmap
 
-def debug_img(i, bm, o):
+def debug_img(img, bitmap, logistic_output):
   # create a debug image with three columns; 1) original RGB. 2) black/white
   # bitmap of labels 3) black/white bitmap of predictions (with centroids coloured
-  # red. we expect i, bm and o to be a batch but we just use first element
-  _bs, h, w, _c = bm.shape
+  # red.
+  h, w, _channels = bitmap.shape
   canvas = Image.new('RGB', (w*3, h), (50, 50, 50))
   # original input image on left
-  i = zero_centered_array_to_pil_image(i[0])
-  i = i.resize((w, h))
-  canvas.paste(i, (0, 0))
+  img = zero_centered_array_to_pil_image(img)
+  img = img.resize((w, h))
+  canvas.paste(img, (0, 0))
   # label bitmap in center
-  bm = bitmap_to_pil_image(bm[0])
-  canvas.paste(bm, (w, 0))
+  canvas.paste(bitmap_to_pil_image(bitmap), (w, 0))
   # logistic output on right
-  logistic_output = bitmap_to_pil_image(o[0])
-  canvas.paste(logistic_output, (w*2, 0))
+  canvas.paste(bitmap_to_pil_image(logistic_output), (w*2, 0))
   # draw red dots on right hand side image corresponding to
   # final thresholded prediction
   draw = ImageDraw.Draw(canvas)
-  for y, x in centroids_of_connected_components(o[0]):
+  for y, x in centroids_of_connected_components(logistic_output):
     draw.rectangle((w*2+x,y,w*2+x,y), fill='red')
   # finally draw blue lines between the three to delimit boundaries
   draw.line([w,0,w,h], fill='blue')
