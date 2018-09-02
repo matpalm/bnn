@@ -11,7 +11,8 @@ import tensorflow as tf
 import util as u
 
 def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, distort_rgb,
-                     flip_left_right, random_rotation, repeat, width, height, one_shot=True):
+                     flip_left_right, random_rotation, repeat, width, height, one_shot=True,
+                     label_rescale=0.5):
   # return dataset of (image, xys_bitmap) for training
 
   # materialise list of rgb filenames and corresponding numpy bitmaps
@@ -43,9 +44,12 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, disto
     offset_width = tf.random_uniform([], 0, width-patch_width, dtype=tf.int32)
     rgb = tf.image.crop_to_bounding_box(rgb, offset_height, offset_width, patch_height, patch_width)
     rgb = tf.reshape(rgb, (patch_height, patch_width, 3))
-    bitmap = tf.image.crop_to_bounding_box(bitmap, offset_height // 2, offset_width // 2,
-                                           patch_height // 2, patch_width // 2 )
-    bitmap = tf.reshape(bitmap, (patch_height // 2, patch_width // 2, 1))
+    # TODO: remove this cast uglyness :/
+    bitmap = tf.image.crop_to_bounding_box(bitmap,
+                                           tf.cast(tf.cast(offset_height, tf.float32) * label_rescale, tf.int32),
+                                           tf.cast(tf.cast(offset_width, tf.float32) * label_rescale, tf.int32),
+                                           int(patch_height * label_rescale), int(patch_width * label_rescale))
+    bitmap = tf.reshape(bitmap, (int(patch_height * label_rescale), int(patch_width * label_rescale), 1))
     return rgb, bitmap
 
   def augment(rgb, bitmap):
@@ -123,6 +127,8 @@ if __name__ == "__main__":
   parser.add_argument('--patch-width-height', type=int, default=None,
                       help="what size square patches to sample. None => no patch, i.e. use full res image"
                            " (in which case --width & --height are required)")
+  parser.add_argument('--label-rescale', type=float, default=0.5,
+                      help='relative scale of label bitmap compared to input image')
   parser.add_argument('--distort', action='store_true')
   parser.add_argument('--rotate', action='store_true')
   parser.add_argument('--width', type=int, default=None, help='input image width. required if --patch-width-height not set.')
@@ -143,7 +149,8 @@ if __name__ == "__main__":
                                 random_rotation=opts.rotate,
                                 repeat=True,
                                 width=opts.width,
-                                height=opts.height)
+                                height=opts.height,
+                                label_rescale=opts.label_rescale)
 
   for b in range(3):
     img_batch, xys_batch = sess.run([imgs, xyss])
