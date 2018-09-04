@@ -1,5 +1,18 @@
 # BNN v2
 
+## ncs_poc branch
+
+this branch includes whatever needs to be done to get it working on a module that works on the ncs
+
+* model is (512,512,3) -> (127,127,1)
+** --patch-width-height must be 512
+** --rescale must be 0.25
+* explicit resize of label set to (127,127,1)
+* deconv instead in nearest neighbour and conf
+* no support for --rotate ; needs fixing, too destructive
+
+## intro
+
 unet style image translation from image of hive entrance to bitmap of location of center of bees.
 
 trained in a semi supervised way on a desktop gpu and deployed to run in real time on the hive using
