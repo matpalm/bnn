@@ -107,3 +107,22 @@ class Model(object):
     else:
       ckpt_file = "%s/%s" % (ckpt_dir, ckpt_file)
     self.saver.restore(sess, ckpt_file)
+
+
+
+if __name__ == "__main__":
+  # build model just to get debug on sizes
+  import argparse
+  parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+  parser.add_argument('--width', type=int, default=768, help='input image width')
+  parser.add_argument('--height', type=int, default=1024, help='input image height')
+  parser.add_argument('--no-use-skip-connections', action='store_true')
+  parser.add_argument('--no-use-batch-norm', action='store_true')
+  parser.add_argument('--base-filter-size', type=int, default=8)
+  opts = parser.parse_args()
+
+  Model(imgs=tf.placeholder(dtype=tf.float32, shape=(1, opts.width, opts.height, 3), name='input_imgs'),
+        is_training=False,
+        use_skip_connections=not opts.no_use_skip_connections,
+        base_filter_size=opts.base_filter_size,
+        use_batch_norm=not opts.no_use_batch_norm)
