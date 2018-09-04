@@ -152,6 +152,9 @@ def side_by_side(rgb, bitmap):
   draw = ImageDraw.Draw(canvas)
   draw.polygon([0,0,w*2-1,0,w*2-1,h-1,0,h-1], outline='blue')
   draw.line([w,0,w,h], fill='blue')
+  # also add some debug info to both sides
+  draw.text((0,0), str(rgb.shape), fill='white')
+  draw.text((w,0), str(bitmap.shape), fill='white')
   return canvas
 
 def red_dots(rgb, centroids):

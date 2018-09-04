@@ -79,6 +79,15 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, disto
     return (tf.reshape(rgb, (height, width, 3)),
             tf.reshape(bitmap, (height // 2, width // 2, 1)))
 
+  def ncs_hacktastic(rgb, bitmap):
+    print("WARNING: ncs_hacktastic")
+    # super important to do NN resize to avoid artifacts
+    return (rgb, tf.image.resize_images(images=bitmap,
+                                        size=(127, 127),
+                                        method=tf.image.ResizeMethod.NEAREST_NEIGHBOR,
+                                        align_corners=True))
+
+
   dataset = tf.data.Dataset.from_tensor_slices((tf.constant(rgb_filenames),
                                                 tf.constant(bitmap_filenames)))
 
@@ -99,6 +108,9 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, disto
 
   if flip_left_right or distort_rgb or random_rotation:
     dataset = dataset.map(augment, num_parallel_calls=8)
+
+  # HACKTASTIC! because of padding we need to shrink bitmap for ncs to (127,127,1)
+  dataset = dataset.map(ncs_hacktastic, num_parallel_calls=8)
 
   if one_shot:
     # return just output tensors from one shot, already inited, iterator
@@ -156,5 +168,5 @@ if __name__ == "__main__":
     img_batch, xys_batch = sess.run([imgs, xyss])
     for i, (img, xys) in enumerate(zip(img_batch, xys_batch)):
       fname = "test_%03d_%03d.png" % (b, i)
-      print("batch", b, "element", i, "fname", fname)
+      print("batch", b, "element", i, "fname", fname, "img.size", img.shape, "bitmap.size", xys.shape)
       u.side_by_side(rgb=img, bitmap=xys).save(fname)
