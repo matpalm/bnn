@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 
-import argparse
+from scipy.special import expit
 from sklearn.metrics import confusion_matrix
+import argparse
 import data
 import model
 import numpy as np
 import sys
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-import util as u
 import test
 import time
+import util as u
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--train-image-dir', type=str, default="sample_data/training/", help="training images")
@@ -31,6 +32,8 @@ parser.add_argument('--train-steps', type=int, default=100, help='number trainin
 parser.add_argument('--secs', type=int, default=None, help='If set, max number of seconds to run')
 parser.add_argument('--width', type=int, default=None, help='test input image width')
 parser.add_argument('--height', type=int, default=None, help='test input image height')
+parser.add_argument('--label-rescale', type=float, default=0.5,
+                    help='relative scale of label bitmap compared to input image')
 opts = parser.parse_args()
 print("opts %s" % opts, file=sys.stderr)
 
@@ -45,7 +48,8 @@ train_imgs, train_xys_bitmaps = data.img_xys_iterator(image_dir=opts.train_image
                                                       flip_left_right=opts.flip_left_right,
                                                       random_rotation=opts.random_rotate,
                                                       repeat=True,
-                                                      width=opts.width, height=opts.height)
+                                                      width=opts.width, height=opts.height,
+                                                      label_rescale=opts.label_rescale)
 
 print("patch train model...")
 train_model = model.Model(train_imgs,
@@ -55,11 +59,11 @@ train_model = model.Model(train_imgs,
                           use_batch_norm=not opts.no_use_batch_norm)
 train_model.calculate_losses_wrt(labels=train_xys_bitmaps)
 
-print("full res test model...")
-tester = test.ModelTester(opts.test_image_dir, opts.label_dir,
-                          opts.batch_size, opts.width, opts.height,
-                          opts.no_use_skip_connections, opts.base_filter_size,
-                          opts.no_use_batch_norm)
+#print("full res test model...")
+#tester = test.ModelTester(opts.test_image_dir, opts.label_dir,
+#                          opts.batch_size, opts.width, opts.height,
+#                          opts.no_use_skip_connections, opts.base_filter_size,
+#                          opts.no_use_batch_norm)
 
 global_step = tf.train.get_or_create_global_step()
 
@@ -101,10 +105,11 @@ while not done:
   # includes loss summaries as well as a hand rolled debug image
 
   # ...train
-  i, bm, logits, o, xl = sess.run([train_imgs, train_xys_bitmaps,
-                                   train_model.logits, train_model.output,
-                                   train_model.xent_loss])
+  i, bm, logits, xl = sess.run([train_imgs, train_xys_bitmaps,
+                                train_model.logits, #train_model.output,
+                                train_model.xent_loss])
   train_summaries_writer.add_summary(u.explicit_summaries({"xent": xl}), step)
+  o = expit(logits)
   debug_img_summary = u.pil_image_to_tf_summary(u.debug_img(i[0], bm[0], o[0]))
   train_summaries_writer.add_summary(debug_img_summary, step)
   train_summaries_writer.flush()
@@ -115,12 +120,12 @@ while not done:
   train_model.save(sess, "ckpts/%s" % opts.run)
 
   # ... test
-  stats = tester.test(opts.run)
-  tag_values = {k: stats[k] for k in ['precision', 'recall', 'f1']}
-  test_summaries_writer.add_summary(u.explicit_summaries(tag_values), step)
-  debug_img_summary = u.pil_image_to_tf_summary(stats['debug_img'])
-  test_summaries_writer.add_summary(debug_img_summary, step)
-  test_summaries_writer.flush()
+#  stats = tester.test(opts.run)
+#  tag_values = {k: stats[k] for k in ['precision', 'recall', 'f1']}
+#  test_summaries_writer.add_summary(u.explicit_summaries(tag_values), step)
+#  debug_img_summary = u.pil_image_to_tf_summary(stats['debug_img'])
+#  test_summaries_writer.add_summary(debug_img_summary, step)
+#  test_summaries_writer.flush()
 
   # check if done by steps or time
   if step >= opts.steps:

@@ -4,6 +4,7 @@
 
 from PIL import Image, ImageDraw
 from label_db import LabelDB
+from scipy.special import expit
 import argparse
 import itertools
 import model
@@ -27,6 +28,8 @@ parser.add_argument('--base-filter-size', type=int, default=8)
 parser.add_argument('--connected-components-threshold', type=float, default=0.05)
 parser.add_argument('--width', type=int, default=768, help='input image width')
 parser.add_argument('--height', type=int, default=1024, help='input image height')
+parser.add_argument('--label-rescale', type=float, default=0.5,
+                    help='relative scale of label bitmap compared to input image')
 opts = parser.parse_args()
 
 # feed data through an explicit placeholder to avoid using tf.data
@@ -69,11 +72,12 @@ for idx, filename in enumerate(sorted(imgs)):
 
   try:
     # run single image through model
-    prediction = sess.run(model.output, feed_dict={model.imgs: [img]})[0]
+    prediction = sess.run(model.logits, feed_dict={model.imgs: [img]})[0]
+    prediction = expit(prediction)
 
     # calc [(x,y), ...] centroids
     centroids = u.centroids_of_connected_components(prediction,
-                                                    rescale=2.0,
+                                                    rescale=1.0/opts.label_rescale,
                                                     threshold=opts.connected_components_threshold)
 
     print("\t".join(map(str, [idx, filename, len(centroids)])))
