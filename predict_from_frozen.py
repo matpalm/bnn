@@ -4,6 +4,7 @@
 
 from PIL import Image, ImageDraw
 from label_db import LabelDB
+from scipy.special import expit
 import argparse
 import itertools
 import numpy as np
@@ -19,6 +20,10 @@ parser.add_argument('--output-label-db', type=str, default=None, help='if not se
 parser.add_argument('--graph', type=str, default='bnn_graph.predict.frozen.pb', help='graph.pb to use')
 parser.add_argument('--export-pngs', default='',
                     help='how, if at all, to export pngs {"", "predictions", "centroids"}')
+parser.add_argument('--label-rescale', type=float, default=0.5,
+                    help='relative scale of label bitmap compared to input image')
+parser.add_argument('--model-output-node', type=str, default='import/train_test_model/output:0',
+                    help='graph tensor to use as output')
 opts = parser.parse_args()
 
 # restore frozen graph
@@ -33,13 +38,19 @@ tf.import_graph_def(graph_def, name=None)
 
 # decide input and output
 imgs_placeholder = tf.get_default_graph().get_tensor_by_name('import/input_imgs:0')
-model_output = tf.get_default_graph().get_tensor_by_name('import/train_test_model/output:0')
+model_output = tf.get_default_graph().get_tensor_by_name(opts.model_output_node)
 
 if opts.output_label_db:
   db = LabelDB(label_db_file=opts.output_label_db)
   db.create_if_required()
 else:
   db = None
+
+if opts.export_pngs:
+  export_dir = "predict_examples/frozen_graph"
+  print("exporting prediction samples to [%s]" % export_dir)
+  if not os.path.exists(export_dir):
+    os.makedirs(export_dir)
 
 prediction_times = []
 centroid_calc_times = []
@@ -56,12 +67,15 @@ for idx, filename in enumerate(os.listdir(opts.image_dir)):
     # run single image through model
     s = time.time()
     prediction = sess.run(model_output, feed_dict={imgs_placeholder: [img]})[0]
+    prediction = expit(prediction)  # no sigmoid on NCS hack!
+
     prediction_time = time.time() - s
     prediction_times.append(prediction_time)
 
     # calc [(x,y), ...] centroids
     s = time.time()
-    centroids = u.centroids_of_connected_components(prediction, rescale=2.0)
+    centroids = u.centroids_of_connected_components(prediction,
+                                                    rescale=1.0/opts.label_rescale)
     centroid_calc_time = time.time() - s
     centroid_calc_times.append(centroid_calc_time)
 
@@ -75,7 +89,7 @@ for idx, filename in enumerate(os.listdir(opts.image_dir)):
         debug_img = u.red_dots(rgb=img, centroids=centroids)
       else:
         raise Exception("unknown --export-pngs option")
-      debug_img.save("predict_example_%03d.png" % idx)
+      debug_img.save("%s/%s.png" % (export_dir, filename))
 
     # set new labels (if requested)
     if db:

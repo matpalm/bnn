@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+*** NONE OF THIS IS GOING TO WORK ON NCS_POC BRANCH ****
+
 set -x
 
 rm -rf sample_data/labels/ ckpts/r12 tb/r12 sample_predictions.db

@@ -73,7 +73,7 @@ for idx, filename in enumerate(sorted(imgs)):
   try:
     # run single image through model
     prediction = sess.run(model.logits, feed_dict={model.imgs: [img]})[0]
-    prediction = expit(prediction)
+    prediction = expit(prediction)  # no sigmoid on NCS hack!
 
     # calc [(x,y), ...] centroids
     centroids = u.centroids_of_connected_components(prediction,
