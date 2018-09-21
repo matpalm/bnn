@@ -22,6 +22,11 @@ class LabelDB(object):
         # assume table already exists? clumsy...
         pass
 
+  def has_been_created(self):
+    c = self.conn.cursor()
+    c.execute("select name from sqlite_master where type='table' AND name='imgs';")
+    return c.fetchone() is not None
+
   def imgs(self):
     c = self.conn.cursor()
     c.execute("select filename from imgs")

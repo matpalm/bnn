@@ -14,7 +14,12 @@ opts = parser.parse_args()
 assert opts.from_db != opts.into_db
 
 from_db = LabelDB(label_db_file=opts.from_db)
+if not from_db.has_been_created():
+  raise Exception("--from-db has never been populated")
+
 into_db = LabelDB(label_db_file=opts.into_db)
+if not into_db.has_been_created():
+  raise Exception("--into-db has never been populated")
 
 num_ignored = 0
 num_added = 0
