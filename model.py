@@ -89,10 +89,11 @@ class Model(object):
       self.saver = tf.train.Saver(max_to_keep=100,
                                   keep_checkpoint_every_n_hours=1)
 
-  def calculate_losses_wrt(self, labels):
+  def calculate_losses_wrt(self, labels, pos_weight=1.0):
     self.xent_loss = tf.reduce_mean(
-      tf.nn.sigmoid_cross_entropy_with_logits(labels=labels,
-                                              logits=self.logits))
+      tf.nn.weighted_cross_entropy_with_logits(targets=labels,
+                                               logits=self.logits,
+                                               pos_weight=pos_weight))
 
   def save(self, sess, ckpt_dir):
     if not os.path.exists(ckpt_dir):

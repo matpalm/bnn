@@ -35,6 +35,7 @@ set -e
     --train-image-dir sample_data/training/ \
     --test-image-dir sample_data/test/ \
     --label-dir sample_data/labels/ \
+    --pos-weight 5 \
     --patch-width-height 256 \
     --width 768 --height 1024
 
@@ -44,6 +45,12 @@ set -e
     --image-dir sample_data/unlabelled \
     --output-label-db sample_predictions.db \
     --export-pngs predictions
+
+# check loss statistics against training data
+./test.py \
+    --run r12 \
+    --image-dir sample_data/training/ \
+    --label-dir sample_data/labels/
 
 # check loss statistics against labelled test data
 ./test.py \

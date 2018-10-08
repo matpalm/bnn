@@ -20,6 +20,7 @@ parser.add_argument('--patch-width-height', type=int, default=None,
                     help="what size square patches to sample. None => no patch, i.e. use full res image")
 parser.add_argument('--batch-size', type=int, default=32, help=' ')
 parser.add_argument('--learning-rate', type=float, default=0.001, help=' ')
+parser.add_argument('--pos-weight', type=float, default=1.0, help='positive class weight in loss. 1.0 = balanced')
 parser.add_argument('--run', type=str, required=True, help="run dir for tb & ckpts")
 parser.add_argument('--no-use-skip-connections', action='store_true', help='set to disable skip connections')
 parser.add_argument('--no-use-batch-norm', action='store_true', help='set to disable batch norm')
@@ -53,7 +54,8 @@ train_model = model.Model(train_imgs,
                           use_skip_connections=not opts.no_use_skip_connections,
                           base_filter_size=opts.base_filter_size,
                           use_batch_norm=not opts.no_use_batch_norm)
-train_model.calculate_losses_wrt(labels=train_xys_bitmaps)
+train_model.calculate_losses_wrt(labels=train_xys_bitmaps,
+                                 pos_weight=opts.pos_weight)
 
 print("full res test model...")
 tester = test.ModelTester(opts.test_image_dir, opts.label_dir,
