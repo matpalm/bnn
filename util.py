@@ -87,7 +87,10 @@ def dice_loss(y, y_hat, batch_size, smoothing=0):
   return loss
 
 def centroids_of_connected_components(bitmap, threshold=0.05, rescale=1.0):
+  # TODO: don't do raw (binary) threshold; instead use P(y) as weighting for centroid
+  #       e.g. https://arxiv.org/abs/1806.03413 sec 3.D
   # TODO: hunt down the x/y swap between PIL and label db :/
+
   # threshold
   mask = bitmap > threshold
   bitmap = np.zeros_like(bitmap)
