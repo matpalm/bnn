@@ -46,7 +46,7 @@ hints
 you can merge entries from `a.db` into `b.db` with `merge_db.py`
 
 ```
-./merge_dbs.py --from-db a.db --to-db b.db
+./merge_dbs.py --from-db a.db --into-db b.db
 ```
 
 ### training
