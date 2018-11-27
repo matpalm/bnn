@@ -18,6 +18,8 @@ the ability to locate each bee means you can summarise with a count. note the sp
 
 ## usage
 
+see `run_sample_training_pipeline.sh` for an executable end to end walkthrough of these steps (using sample data)
+
 ### gathering data
 
 the `rasp_pi` sub directory includes one method of collecting images on a raspberry pi.
