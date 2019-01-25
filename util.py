@@ -255,3 +255,9 @@ def last_file_in_dir(d):
   files = os.listdir(d)
   if len(files) == 0: raise Exception("no files in dir [%s]" % d)
   return sorted(files)[-1]
+
+def weighted_xent(y_true, y_predicted):
+  return tf.reduce_mean(
+    tf.nn.weighted_cross_entropy_with_logits(targets=y_true,
+                                             logits=y_predicted,
+                                             pos_weight=10)) # TODO: REMOVE FIXED VALUE

@@ -6,7 +6,6 @@ from PIL import Image, ImageDraw
 from label_db import LabelDB
 import argparse
 import itertools
-import kmodel
 import numpy as np
 from tensorflow.keras.models import load_model
 import os
@@ -32,8 +31,7 @@ opts = parser.parse_args()
 
 latest_model = "ckpts/%s/%s" % (opts.run, u.last_file_in_dir("ckpts/%s" % opts.run))
 print("using model [%s]" % latest_model)
-model = load_model(latest_model,
-                   custom_objects={'weighted_xent': kmodel.weighted_xent})
+model = load_model(latest_model, custom_objects={'weighted_xent': u.weighted_xent})
 print(model.summary())
 
 if opts.output_label_db:

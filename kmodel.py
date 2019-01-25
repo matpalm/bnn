@@ -2,6 +2,7 @@ import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import *
 from tensorflow.keras import optimizers
+import util as u
 
 def construct_model(width, height, base_filter_size,
                     use_batch_norm=True, use_skip_connections=True):
@@ -9,9 +10,10 @@ def construct_model(width, height, base_filter_size,
   def conv_bn_relu_block(i, name, filters, strides):
     o = Conv2D(filters=filters, kernel_size=3,
                strides=strides, padding='same')(i)
-#    return o
     if use_batch_norm:
       o = BatchNormalization()(o)
+
+    # ReLU layer won't load via load_model (???) TODO: weird bug (??)
     relu = Lambda(lambda x: tf.max(x, 0))
     return LeakyReLU(alpha=0.0)(o)
 
@@ -45,13 +47,7 @@ def construct_model(width, height, base_filter_size,
 
   return Model(inputs=inputs, outputs=logits)
 
-def weighted_xent(y_true, y_predicted):
-  return tf.reduce_mean(
-    tf.nn.weighted_cross_entropy_with_logits(targets=y_true,
-                                             logits=y_predicted,
-                                             pos_weight=10)) # TODO: REMOVE FIXED VALUE
-
 def compile_model(model, learning_rate, pos_weight=10):
   model.compile(optimizer=optimizers.Adam(lr=learning_rate),
-                loss=weighted_xent)
+                loss=u.weighted_xent)
   return model
