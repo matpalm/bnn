@@ -3,14 +3,17 @@
 import argparse
 from sklearn.metrics import confusion_matrix
 import data
-import model
+import datetime
+import kmodel      # TODO: rename back to model
 import numpy as np
+import os
 import sys
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 import util as u
-import test
+#import test
 import time
+from scipy.special import expit
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--train-image-dir', type=str, default="sample_data/training/", help="training images")
@@ -37,94 +40,129 @@ print("opts %s" % opts, file=sys.stderr)
 
 np.set_printoptions(precision=2, threshold=10000, suppress=True, linewidth=10000)
 
+#from tensorflow.python import debug as tf_debug
+#tf.keras.backend.set_session(tf_debug.LocalCLIDebugWrapperSession(tf.Session()))
+
 # Build readers / model for training
-train_imgs, train_xys_bitmaps = data.img_xys_iterator(image_dir=opts.train_image_dir,
-                                                      label_dir=opts.label_dir,
-                                                      batch_size=opts.batch_size,
-                                                      patch_width_height=opts.patch_width_height,
-                                                      distort_rgb=True,
-                                                      flip_left_right=opts.flip_left_right,
-                                                      random_rotation=opts.random_rotate,
-                                                      repeat=True,
-                                                      width=opts.width, height=opts.height)
+train_imgs_xys_bitmaps = data.img_xys_iterator(image_dir=opts.train_image_dir,
+                                               label_dir=opts.label_dir,
+                                               batch_size=opts.batch_size,
+                                               patch_width_height=opts.patch_width_height,
+                                               distort_rgb=True,
+                                               flip_left_right=opts.flip_left_right,
+                                               random_rotation=opts.random_rotate,
+                                               repeat=True,
+                                               width=opts.width, height=opts.height)
 
-print("patch train model...")
-train_model = model.Model(train_imgs,
-                          is_training=True,
-                          use_skip_connections=not opts.no_use_skip_connections,
-                          base_filter_size=opts.base_filter_size,
-                          use_batch_norm=not opts.no_use_batch_norm)
-train_model.calculate_losses_wrt(labels=train_xys_bitmaps,
-                                 pos_weight=opts.pos_weight)
+# TODO: need to inspect dataset to see how many images there are so (N) that we know
+#       when batch is B we should do model.evaluate(steps=N/B)
+test_imgs_xys_bitmaps = data.img_xys_iterator(image_dir=opts.test_image_dir,
+                                              label_dir=opts.label_dir,
+                                              batch_size=opts.batch_size,
+                                              patch_width_height=opts.patch_width_height,
+                                              distort_rgb=False,
+                                              flip_left_right=False,
+                                              random_rotation=False,
+                                              repeat=False,
+                                              width=opts.width, height=opts.height)
 
-print("full res test model...")
-tester = test.ModelTester(opts.test_image_dir, opts.label_dir,
-                          opts.batch_size, opts.width, opts.height,
-                          opts.no_use_skip_connections, opts.base_filter_size,
-                          opts.no_use_batch_norm)
+num_test_files = len(os.listdir(opts.test_image_dir))
+num_test_steps = num_test_files // opts.batch_size
+print("num_test_files=", num_test_files, "batch_size=", opts.batch_size, "=> num_test_steps=", num_test_steps)
 
-global_step = tf.train.get_or_create_global_step()
+# training model might be patch, or full res
+train_model = kmodel.construct_model(width=opts.patch_width_height or opts.width,
+                                     height=opts.patch_width_height or opts.height,
+                                     use_skip_connections=not opts.no_use_skip_connections,
+                                     base_filter_size=opts.base_filter_size,
+                                     use_batch_norm=not opts.no_use_batch_norm)
+kmodel.compile_model(train_model,
+                     learning_rate=opts.learning_rate,
+                     pos_weight=opts.pos_weight)
+print(train_model.summary())
 
-optimiser = tf.train.AdamOptimizer(learning_rate=opts.learning_rate)
-
-# TODO: reinclude reg loss
-# regularisation_loss = tf.add_n(tf.losses.get_regularization_losses())
-train_op = slim.learning.create_train_op(total_loss = train_model.xent_loss, # + regularisation_loss,
-                                         optimizer = optimiser,
-                                         summarize_gradients = False)
-
-# Create session.
-sess_config = tf.ConfigProto()
-# sess_config.gpu_options.per_process_gpu_memory_fraction = 0.2
-sess = tf.Session(config=sess_config)
-sess.run(tf.global_variables_initializer())
+# always build test model in full res
+test_model =  kmodel.construct_model(width=opts.width,
+                                     height=opts.height,
+                                     use_skip_connections=not opts.no_use_skip_connections,
+                                     base_filter_size=opts.base_filter_size,
+                                     use_batch_norm=not opts.no_use_batch_norm)
 
 # Setup summary writers. (Will create explicit summaries to write)
-train_summaries_writer = tf.summary.FileWriter("tb/%s/training" % opts.run, sess.graph)
-test_summaries_writer = tf.summary.FileWriter("tb/%s/test" % opts.run, sess.graph)
+# TODO: include keras default callback
+train_summaries_writer = tf.summary.FileWriter("tb/%s/training" % opts.run, None)
+test_summaries_writer = tf.summary.FileWriter("tb/%s/test" % opts.run, None)
 
 start_time = time.time()
 done = False
+step = 0
+
+# HACK
+#from PIL import Image
+#test_img = np.array(Image.open("sample_data/training/20180204_145344.jpg"))
+#test_img = test_img.astype(np.float32)
+#test_img = (test_img / 127.5) - 1.0  # -1.0 -> 1.0  # see data.py
+#print("test_img", test_img.shape)
+# <HACK
+
 while not done:
 
   # train a bit.
-  for _ in range(opts.train_steps):
-    sess.run(train_op)
+  history = train_model.fit(train_imgs_xys_bitmaps,
+                            epochs=1, verbose=0,
+                            steps_per_epoch=opts.train_steps)
+  train_loss = history.history['loss'][0]
 
-  # fetch global_step & xent_loss
-  step, xl = sess.run([global_step, train_model.xent_loss])
+  # do eval using test model
+  # TODO: switch to sharing layers between these two over this explicit get/set_weights
+  test_model.set_weights(train_model.get_weights())
+  test_loss = train_model.evaluate(test_imgs_xys_bitmaps,
+                                   steps=num_test_steps)
+
+  # predict on single image
+#  test_prediction = train_model.predict(np.expand_dims(test_img, 0))[0]
+#  print("test_pred", np.min(test_prediction), np.max(test_prediction))
+
+#  test_prediction = expit(test_prediction)
+#  print("test_pred", np.min(test_prediction), np.max(test_prediction))
+#  debug_img = u.side_by_side(rgb=test_img, bitmap=test_prediction)
+#  debug_img.save("debug_%05d.png" % step)
 
   # report one liner
-  print("step %d/%d\ttime %d\txent_loss %f" % (step, opts.steps,
-                                               int(time.time()-start_time),
-                                               xl))
+  print("step %d/%d\ttime %d\ttrain_loss %f\ttest_loss %f" % (step, opts.steps,
+                                                              int(time.time()-start_time),
+                                                              train_loss, test_loss))
 
   # train / test summaries
   # includes loss summaries as well as a hand rolled debug image
 
   # ...train
-  i, bm, logits, o, xl = sess.run([train_imgs, train_xys_bitmaps,
-                                   train_model.logits, train_model.output,
-                                   train_model.xent_loss])
-  train_summaries_writer.add_summary(u.explicit_summaries({"xent": xl}), step)
-  debug_img_summary = u.pil_image_to_tf_summary(u.debug_img(i[0], bm[0], o[0]))
-  train_summaries_writer.add_summary(debug_img_summary, step)
+#  i, bm, logits, o, xl = sess.run([train_imgs, train_xys_bitmaps,
+#                                   train_model.logits, train_model.output,
+#                                   train_model.xent_loss])
+  train_summaries_writer.add_summary(u.explicit_summaries({"xent": train_loss}), step)
+#  debug_img_summary = u.pil_image_to_tf_summary(u.debug_img(i[0], bm[0], o[0]))
+#  train_summaries_writer.add_summary(debug_img_summary, step)
   train_summaries_writer.flush()
 
-  # save checkpoint (to be reloaded by test)
-  # TODO: this is clumsy; need to refactor test to use current session instead
-  #       of loading entirely new one... will do for now.
-  train_model.save(sess, "ckpts/%s" % opts.run)
-
   # ... test
-  stats = tester.test(opts.run)
-  tag_values = {k: stats[k] for k in ['precision', 'recall', 'f1']}
-  test_summaries_writer.add_summary(u.explicit_summaries(tag_values), step)
-  debug_img_summary = u.pil_image_to_tf_summary(stats['debug_img'])
-  test_summaries_writer.add_summary(debug_img_summary, step)
+#  stats = tester.test(opts.run)
+#  tag_values = {k: stats[k] for k in ['precision', 'recall', 'f1']}
+  test_summaries_writer.add_summary(u.explicit_summaries({"xent": test_loss}), step)
+#  test_summaries_writer.add_summary(u.explicit_summaries(tag_values), step)
+#  debug_img_summary = u.pil_image_to_tf_summary(stats['debug_img'])
+#  test_summaries_writer.add_summary(debug_img_summary, step)
   test_summaries_writer.flush()
 
+  # save model
+  dts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+  ckpt_dir = "ckpts/%s" % opts.run
+  if not os.path.exists(ckpt_dir):
+    os.makedirs(ckpt_dir)
+  train_model.save("%s/%s" % (ckpt_dir, dts))
+
   # check if done by steps or time
+  step += 1  # TODO: fetch global_step from keras model (?)
   if step >= opts.steps:
     done = True
   if opts.secs is not None:

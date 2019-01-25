@@ -1,10 +1,11 @@
 from PIL import Image, ImageDraw
 from skimage import measure
 import io
-import numpy as np
-import tensorflow as tf
 import math
+import numpy as np
+import os
 import sys
+import tensorflow as tf
 
 def hms(secs):
   if secs < 0:
@@ -111,11 +112,11 @@ def bitmap_from_centroids(centroids, h, w):
     bitmap[cx, cy] = 1.0
   return bitmap
 
-def zero_centered_array_to_pil_image(array):
-  assert array.dtype == np.float32
-  h, w, c = array.shape
+def zero_centered_array_to_pil_image(orig_array):
+  assert orig_array.dtype == np.float32
+  h, w, c = orig_array.shape
   assert c == 3
-  array += 1      # 0.0 -> 2.0
+  array = orig_array + 1  # 0.0 -> 2.0
   array *= 127.5  # 0.0 -> 255.0
   array = array.copy().astype(np.uint8)
   assert np.min(array) >= 0
@@ -249,3 +250,6 @@ def shuffled_endless_generator(l):
 
 def n_tiles(v, n=10):
   return np.percentile(v, np.linspace(0, 100, n+1))
+
+def last_file_in_dir(d):
+  return sorted(os.listdir(d))[-1]

@@ -10,6 +10,8 @@ import random
 import tensorflow as tf
 import util as u
 
+# TODO: remove one_shot; the way we handle iterators with keras.fit is different
+
 def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, distort_rgb,
                      flip_left_right, random_rotation, repeat, width, height, one_shot=True,
                      label_rescale=0.5):
@@ -100,20 +102,21 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, disto
   if flip_left_right or distort_rgb or random_rotation:
     dataset = dataset.map(augment, num_parallel_calls=8)
 
-  if one_shot:
-    # return just output tensors from one shot, already inited, iterator
-    return (dataset.
-            batch(batch_size).
-            prefetch(1).
-            make_one_shot_iterator().
-            get_next())
-  else:
+  assert one_shot is True  # TODO: remove one_shot use
+
+  # NOTE: keras.fit wants the iterator directly (not .get_next())
+#  if one_shot:
+#    # return just output tensors from one shot, already inited, iterator
+  return dataset.batch(batch_size).prefetch(1)
+#            make_one_shot_iterator())
+#            get_next())
+#  else:
     # return output tensors _and_ init op
-    iterator = (dataset.
-                batch(batch_size).
-                prefetch(1).
-                make_initializable_iterator())
-    return (iterator.initializer, iterator.get_next())
+#    iterator = (dataset.
+#                batch(batch_size).
+#                prefetch(1).
+#                make_initializable_iterator())
+#    return (iterator.initializer, iterator.get_next())
 
 if __name__ == "__main__":
   import argparse
@@ -140,21 +143,51 @@ if __name__ == "__main__":
 
   sess = tf.Session()
 
-  imgs, xyss = img_xys_iterator(image_dir=opts.image_dir,
-                                label_dir=opts.label_dir,
-                                batch_size=opts.batch_size,
-                                patch_width_height=opts.patch_width_height,
-                                distort_rgb=opts.distort,
-                                flip_left_right=True,
-                                random_rotation=opts.rotate,
-                                repeat=True,
-                                width=opts.width,
-                                height=opts.height,
-                                label_rescale=opts.label_rescale)
+  imgs_xyss = img_xys_iterator(image_dir=opts.image_dir,
+                               label_dir=opts.label_dir,
+                               batch_size=opts.batch_size,
+                               patch_width_height=opts.patch_width_height,
+                               distort_rgb=opts.distort,
+                               flip_left_right=True,
+                               random_rotation=opts.rotate,
+                               repeat=True,
+                               width=opts.width,
+                               height=opts.height,
+                               label_rescale=opts.label_rescale)
 
-  for b in range(3):
-    img_batch, xys_batch = sess.run([imgs, xyss])
-    for i, (img, xys) in enumerate(zip(img_batch, xys_batch)):
-      fname = "test_%03d_%03d.png" % (b, i)
-      print("batch", b, "element", i, "fname", fname)
-      u.side_by_side(rgb=img, bitmap=xys).save(fname)
+  from tensorflow.keras.models import Model
+  from tensorflow.keras.layers import *
+
+  import kmodel
+  m = kmodel.model(width=opts.width,
+                   height=opts.height,
+                   use_skip_connections=True,
+                   base_filter_size=8)
+  print(m.summary())
+
+  m.fit(imgs_xyss, epochs=1, steps_per_epoch=16)  # 16 images in sample_data
+
+  imgs_xyss = img_xys_iterator(image_dir=opts.image_dir,
+                               label_dir=opts.label_dir,
+                               batch_size=opts.batch_size,
+                               patch_width_height=opts.patch_width_height,
+                               distort_rgb=opts.distort,
+                               flip_left_right=True,
+                               random_rotation=opts.rotate,
+                               repeat=True,
+                               width=opts.width,
+                               height=opts.height,
+                               label_rescale=opts.label_rescale)
+
+  print(m.predict(imgs_xyss))
+
+
+#  for b in range(3):
+#    img_batch, xys_batch = sess.run([imgs, xyss])
+#    print("batch shape", img_batch.shape)
+#    print("predict output shape", m.predict(img_batch).shape)
+
+#    for i, (img, xys) in enumerate(zip(img_batch, xys_batch)):
+#      fname = "test_%03d_%03d.png" % (b, i)
+#      print("batch", b, "element", i, "fname", fname)
+#      u.side_by_side(rgb=img, bitmap=xys).save(fname)

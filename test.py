@@ -10,7 +10,7 @@ import tensorflow as tf
 import util as u
 
 class ModelTester(object):
-
+  assert False  # ditch all this, though would like to reuse the P/R stuff...
   def __init__(self, image_dir, label_dir, batch_size, width, height,
                no_use_skip_connections, base_filter_size, no_use_batch_norm):
 

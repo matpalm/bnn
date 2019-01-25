@@ -17,6 +17,7 @@ class Model(object):
 
   def __init__(self, imgs, is_training, use_skip_connections,
                base_filter_size, use_batch_norm):
+
     with tf.variable_scope("train_test_model", reuse=tf.AUTO_REUSE) as scope:
       self.imgs = imgs
       model = imgs
