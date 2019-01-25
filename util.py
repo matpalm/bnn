@@ -252,4 +252,6 @@ def n_tiles(v, n=10):
   return np.percentile(v, np.linspace(0, 100, n+1))
 
 def last_file_in_dir(d):
-  return sorted(os.listdir(d))[-1]
+  files = os.listdir(d)
+  if len(files) == 0: raise Exception("no files in dir [%s]" % d)
+  return sorted(files)[-1]

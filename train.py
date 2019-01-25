@@ -97,13 +97,13 @@ start_time = time.time()
 done = False
 step = 0
 
-# HACK
-#from PIL import Image
-#test_img = np.array(Image.open("sample_data/training/20180204_145344.jpg"))
-#test_img = test_img.astype(np.float32)
-#test_img = (test_img / 127.5) - 1.0  # -1.0 -> 1.0  # see data.py
-#print("test_img", test_img.shape)
-# <HACK
+# >>> HACK
+from PIL import Image
+test_img = np.array(Image.open("sample_data/training/20180204_145344.jpg"))
+test_img = test_img.astype(np.float32)
+test_img = (test_img / 127.5) - 1.0  # -1.0 -> 1.0  # see data.py
+print("test_img", test_img.shape)
+# <<< HACK
 
 while not done:
 
@@ -119,14 +119,15 @@ while not done:
   test_loss = train_model.evaluate(test_imgs_xys_bitmaps,
                                    steps=num_test_steps)
 
+  # >>> HACK
   # predict on single image
-#  test_prediction = train_model.predict(np.expand_dims(test_img, 0))[0]
-#  print("test_pred", np.min(test_prediction), np.max(test_prediction))
-
-#  test_prediction = expit(test_prediction)
-#  print("test_pred", np.min(test_prediction), np.max(test_prediction))
-#  debug_img = u.side_by_side(rgb=test_img, bitmap=test_prediction)
-#  debug_img.save("debug_%05d.png" % step)
+  test_prediction = train_model.predict(np.expand_dims(test_img, 0))[0]
+  print("test_pred", np.min(test_prediction), np.max(test_prediction))
+  test_prediction = expit(test_prediction)
+  print("test_pred", np.min(test_prediction), np.max(test_prediction))
+  debug_img = u.side_by_side(rgb=test_img, bitmap=test_prediction)
+  debug_img.save("debug_%05d.png" % step)
+  # <<< HACK
 
   # report one liner
   print("step %d/%d\ttime %d\ttrain_loss %f\ttest_loss %f" % (step, opts.steps,
@@ -160,6 +161,13 @@ while not done:
   if not os.path.exists(ckpt_dir):
     os.makedirs(ckpt_dir)
   train_model.save("%s/%s" % (ckpt_dir, dts))
+#  print("!!!!!!!!!!!!!", train_model.summary())
+
+#  from tensorflow.keras.models import load_model
+#  test_reload = load_model("%s/%s" % (ckpt_dir, dts),
+#                           custom_objects={'weighted_xent': kmodel.weighted_xent})
+#  train_model.load("%s/%s" % (ckpt_dir, dts))
+#  print("!!!!!!!!!!!!! 2", test_reload.summary())
 
   # check if done by steps or time
   step += 1  # TODO: fetch global_step from keras model (?)

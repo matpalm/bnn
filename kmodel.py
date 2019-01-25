@@ -9,9 +9,11 @@ def construct_model(width, height, base_filter_size,
   def conv_bn_relu_block(i, name, filters, strides):
     o = Conv2D(filters=filters, kernel_size=3,
                strides=strides, padding='same')(i)
+#    return o
     if use_batch_norm:
       o = BatchNormalization()(o)
-    return ReLU(name=name)(o)
+    relu = Lambda(lambda x: tf.max(x, 0))
+    return LeakyReLU(alpha=0.0)(o)
 
   inputs = Input(shape=(height, width, 3), name='inputs')
 
@@ -43,12 +45,13 @@ def construct_model(width, height, base_filter_size,
 
   return Model(inputs=inputs, outputs=logits)
 
+def weighted_xent(y_true, y_predicted):
+  return tf.reduce_mean(
+    tf.nn.weighted_cross_entropy_with_logits(targets=y_true,
+                                             logits=y_predicted,
+                                             pos_weight=10)) # TODO: REMOVE FIXED VALUE
+
 def compile_model(model, learning_rate, pos_weight=10):
-  def weighted_xent(y_true, y_predicted):
-    return tf.reduce_mean(
-      tf.nn.weighted_cross_entropy_with_logits(targets=y_true,
-                                               logits=y_predicted,
-                                               pos_weight=pos_weight))
   model.compile(optimizer=optimizers.Adam(lr=learning_rate),
                 loss=weighted_xent)
   return model
