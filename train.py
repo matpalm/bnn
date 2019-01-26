@@ -11,10 +11,10 @@ import sys
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 import util as u
-#import test
+import test
 import time
 from scipy.special import expit
-import test
+import json
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--train-image-dir', type=str, default="sample_data/training/", help="training images")
@@ -41,6 +41,13 @@ parser.add_argument('--height', type=int, default=None, help='test input image h
 parser.add_argument('--connected-components-threshold', type=float, default=0.05)
 opts = parser.parse_args()
 print("opts %s" % opts, file=sys.stderr)
+
+# prep ckpt dir (and save off opts)
+ckpt_dir = "ckpts/%s" % opts.run
+if not os.path.exists(ckpt_dir):
+  os.makedirs(ckpt_dir)
+with open("%s/opts.json" % ckpt_dir, "w") as f:
+  f.write(json.dumps(vars(opts)))
 
 np.set_printoptions(precision=2, threshold=10000, suppress=True, linewidth=10000)
 
@@ -137,15 +144,15 @@ while not done:
 
   # save model
   dts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-  ckpt_dir = "ckpts/%s" % opts.run
-  if not os.path.exists(ckpt_dir):
-    os.makedirs(ckpt_dir)
-  train_model.save("%s/%s" % (ckpt_dir, dts))
+  save_filename = "%s/%s" % (ckpt_dir, dts)
+  print("save_filename", save_filename)
+  train_model.save_weights(save_filename)
+#  train_model.save(save_filename)
 
   # ... test
   # TODO: here we are reloading model from scratch, would be quicker to use a shared layers model
   stats = test.pr_stats(opts.run, opts.test_image_dir, opts.label_db, opts.connected_components_threshold)
-  print("STATS", stats)
+  print("test stats", stats)
   tag_values = {k: stats[k] for k in ['precision', 'recall', 'f1']}
   test_summaries_writer.add_summary(u.explicit_summaries({"xent": test_loss}), step)
   test_summaries_writer.add_summary(u.explicit_summaries(tag_values), step)

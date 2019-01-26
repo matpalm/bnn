@@ -4,6 +4,7 @@ import io
 import math
 import numpy as np
 import os
+import yaml
 import sys
 import tensorflow as tf
 
@@ -158,6 +159,7 @@ def side_by_side(rgb, bitmap):
   draw = ImageDraw.Draw(canvas)
   draw.polygon([0,0,w*2-1,0,w*2-1,h-1,0,h-1], outline='blue')
   draw.line([w,0,w,h], fill='blue')
+  canvas = canvas.resize((w, h//2))
   return canvas
 
 def red_dots(rgb, centroids):
@@ -253,10 +255,9 @@ def shuffled_endless_generator(l):
 def n_tiles(v, n=10):
   return np.percentile(v, np.linspace(0, 100, n+1))
 
-def last_file_in_dir(d):
-  files = os.listdir(d)
-  if len(files) == 0: raise Exception("no files in dir [%s]" % d)
-  return sorted(files)[-1]
+def latest_checkpoint_in_dir(ckpt_dir):
+  checkpoint_info = yaml.load(open("%s/checkpoint" % ckpt_dir).read())
+  return checkpoint_info['model_checkpoint_path']
 
 def weighted_xent(y_true, y_predicted):
   return tf.reduce_mean(

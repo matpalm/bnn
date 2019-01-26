@@ -9,15 +9,26 @@ from label_db import LabelDB
 import os
 from PIL import Image
 from scipy.special import expit
-
+import kmodel
+import json
 
 def pr_stats(run, image_dir, label_db, connected_components_threshold):
+
   # TODO: a bunch of this can go back into one off init in a class
 
-  # load the model
-  latest_model = "ckpts/%s/%s" % (run, u.last_file_in_dir("ckpts/%s" % run))
-  model = load_model(latest_model, custom_objects={'weighted_xent': u.weighted_xent})
-  print(model.summary())
+  # load model using opts from training
+  opts = json.loads(open("ckpts/%s/opts.json" % run).read())
+
+  # NOTE: we construct this model with full width / height, not the (potential)
+  #       patch size we used for training
+  model =  kmodel.construct_model(width=opts['width'],
+                                  height=opts['height'],
+                                  use_skip_connections=not opts['no_use_skip_connections'],
+                                  base_filter_size=opts['base_filter_size'],
+                                  use_batch_norm=not opts['no_use_batch_norm'])
+  # restore weights from latest checkpoint
+  latest_ckpt = u.latest_checkpoint_in_dir("ckpts/%s" % run)
+  model.load_weights("ckpts/%s/%s" % (run, latest_ckpt))
 
   label_db = LabelDB(label_db_file=label_db)
 
