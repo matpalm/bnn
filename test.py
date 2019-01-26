@@ -2,15 +2,13 @@
 
 # given a directory of images and labels output overall P/R/F1 for entire set
 
-import numpy as np
-import util as u
-from tensorflow.keras.models import load_model
-from label_db import LabelDB
-import os
 from PIL import Image
+from label_db import LabelDB
 from scipy.special import expit
 import kmodel
-import json
+import numpy as np
+import os
+import util as u
 
 def pr_stats(run, image_dir, label_db, connected_components_threshold):
 

@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
 
-import argparse
 from sklearn.metrics import confusion_matrix
+import argparse
 import data
 import datetime
+import json
 import kmodel      # TODO: rename back to model
 import numpy as np
 import os
 import sys
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
-import util as u
 import test
 import time
-from scipy.special import expit
-import json
+import util as u
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--train-image-dir', type=str, default="sample_data/training/", help="training images")
@@ -42,7 +40,7 @@ parser.add_argument('--connected-components-threshold', type=float, default=0.05
 opts = parser.parse_args()
 print("opts %s" % opts, file=sys.stderr)
 
-# prep ckpt dir (and save off opts)
+# prep ckpt dir (and save training_opts for restoring model later)
 ckpt_dir = "ckpts/%s" % opts.run
 if not os.path.exists(ckpt_dir):
   os.makedirs(ckpt_dir)
@@ -116,7 +114,7 @@ while not done:
 
   # train a bit.
   history = train_model.fit(train_imgs_xys_bitmaps,
-                            epochs=1, verbose=0,
+                            epochs=1, verbose=1,
                             steps_per_epoch=opts.train_steps)
   train_loss = history.history['loss'][0]
 
@@ -124,12 +122,8 @@ while not done:
   # TODO: switch to sharing layers between these two over this explicit get/set_weights
   test_model.set_weights(train_model.get_weights())
   test_loss = train_model.evaluate(test_imgs_xys_bitmaps,
+                                   verbose=1,
                                    steps=num_test_steps)
-
-  # report one liner
-  print("step %d/%d\ttime %d\ttrain_loss %f\ttest_loss %f" % (step, opts.steps,
-                                                              int(time.time()-start_time),
-                                                              train_loss, test_loss))
 
   # train / test summaries
   # includes loss summaries as well as a hand rolled debug image
@@ -145,20 +139,26 @@ while not done:
   # save model
   dts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
   save_filename = "%s/%s" % (ckpt_dir, dts)
-  print("save_filename", save_filename)
   train_model.save_weights(save_filename)
-#  train_model.save(save_filename)
 
   # ... test
   # TODO: here we are reloading model from scratch, would be quicker to use a shared layers model
   stats = test.pr_stats(opts.run, opts.test_image_dir, opts.label_db, opts.connected_components_threshold)
-  print("test stats", stats)
   tag_values = {k: stats[k] for k in ['precision', 'recall', 'f1']}
   test_summaries_writer.add_summary(u.explicit_summaries({"xent": test_loss}), step)
   test_summaries_writer.add_summary(u.explicit_summaries(tag_values), step)
   debug_img_summary = u.pil_image_to_tf_summary(stats['debug_img'])
   test_summaries_writer.add_summary(debug_img_summary, step)
   test_summaries_writer.flush()
+
+  # report one liner
+  log = []
+  log.append("step %d/%d" % (step, opts.steps))
+  log.append("time %d" % int(time.time()-start_time))
+  log.append("train_loss %f" % train_loss)
+  log.append("test_loss %s" % test_loss)
+  log.append("test stats { p:%0.2f, r:%0.2f, f1:%0.2f }" % tuple([stats[k] for k in ['precision', 'recall', 'f1']]))
+  print("\t".join(log))
 
   # check if done by steps or time
   step += 1  # TODO: fetch global_step from keras model (?)

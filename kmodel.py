@@ -1,7 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import *
-from tensorflow.keras import optimizers
 import util as u
 import json
 
@@ -67,6 +66,6 @@ def construct_model(width, height, base_filter_size,
   return Model(inputs=inputs, outputs=logits)
 
 def compile_model(model, learning_rate, pos_weight=10):
-  model.compile(optimizer=optimizers.Adam(lr=learning_rate),
+  model.compile(optimizer=tf.train.AdamOptimizer(learning_rate=learning_rate),
                 loss=u.weighted_xent)
   return model

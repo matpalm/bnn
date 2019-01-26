@@ -2,18 +2,15 @@
 
 # given a directory of images output a list of image -> predictions
 
-import kmodel
 from PIL import Image, ImageDraw
 from label_db import LabelDB
+from scipy.special import expit
 import argparse
-import itertools
+import kmodel
 import numpy as np
-from tensorflow.keras.models import load_model
 import os
 import random
 import util as u
-from scipy.special import expit
-import json
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--image-dir', type=str, required=True)
@@ -51,13 +48,11 @@ for idx, filename in enumerate(sorted(imgs)):
   img = np.array(Image.open(opts.image_dir+"/"+filename))  # uint8 0->255  (H, W)
   img = img.astype(np.float32)
   img = (img / 127.5) - 1.0  # -1.0 -> 1.0  # see data.py
-  print("img", img.shape)
 
   # run through model (adding / removing dummy batch)
   # recall: output from model is logits so we need to expit
   # TODO: do this in batch !!
   prediction = expit(model.predict(np.expand_dims(img, 0))[0])
-  print("prediction", prediction.shape, np.min(prediction), np.max(prediction))
 
   # calc [(x,y), ...] centroids
   centroids = u.centroids_of_connected_components(prediction,
@@ -73,7 +68,6 @@ for idx, filename in enumerate(sorted(imgs)):
       debug_img = u.red_dots(rgb=img, centroids=centroids)
     else:
       raise Exception("unknown --export-pngs option")
-    print("save debug_img %s/%s.png" % (export_dir, filename))
     debug_img.save("%s/%s.png" % (export_dir, filename))
 
   # set new labels (if requested)
