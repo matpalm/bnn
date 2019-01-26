@@ -13,6 +13,8 @@ import tensorflow as tf
 import time
 import util as u
 
+raise Exception("needs porting since slim -> keras change")
+
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--image-dir', type=str, required=True)
 parser.add_argument('--output-label-db', type=str, default=None, help='if not set dont write label_db')

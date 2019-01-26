@@ -10,38 +10,26 @@ import os
 from PIL import Image
 from scipy.special import expit
 
-if __name__ == "__main__":
-  import argparse
-  parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-  parser.add_argument('--image-dir', type=str, required=True)
-  parser.add_argument('--label-db', type=str, required=True)
-  parser.add_argument('--run', type=str, required=True, help='model')
-#  parser.add_argument('--batch-size', type=int, default=1)
-#  parser.add_argument('--no-use-skip-connections', action='store_true')
-#  parser.add_argument('--no-use-batch-norm', action='store_true')
-#  parser.add_argument('--base-filter-size', type=int, default=8)
-  parser.add_argument('--width', type=int, default=768, help='input image width')
-  parser.add_argument('--height', type=int, default=1024, help='input image height')
-  parser.add_argument('--connected-components-threshold', type=float, default=0.05)
-  opts = parser.parse_args()
-  print(opts)
+
+def pr_stats(run, image_dir, label_db, connected_components_threshold):
+  # TODO: a bunch of this can go back into one off init in a class
 
   # load the model
-  latest_model = "ckpts/%s/%s" % (opts.run, u.last_file_in_dir("ckpts/%s" % opts.run))
+  latest_model = "ckpts/%s/%s" % (run, u.last_file_in_dir("ckpts/%s" % run))
   print("using model [%s]" % latest_model)
   model = load_model(latest_model, custom_objects={'weighted_xent': u.weighted_xent})
   print(model.summary())
 
-  label_db = LabelDB(label_db_file=opts.label_db)
+  label_db = LabelDB(label_db_file=label_db)
 
   set_comparison = u.SetComparison()
 
-  for idx, filename in enumerate(sorted(os.listdir(opts.image_dir))):
+  for idx, filename in enumerate(sorted(os.listdir(image_dir))):
     print("filename", filename)
 
     # load next image
     # TODO: this block used in various places
-    img = np.array(Image.open(opts.image_dir+"/"+filename))  # uint8 0->255  (H, W)
+    img = np.array(Image.open(image_dir+"/"+filename))  # uint8 0->255  (H, W)
     img = img.astype(np.float32)
     img = (img / 127.5) - 1.0  # -1.0 -> 1.0  # see data.py
     print("img", img.shape)
@@ -52,7 +40,7 @@ if __name__ == "__main__":
     # calc [(x,y), ...] centroids
     predicted_centroids = u.centroids_of_connected_components(prediction,
                                                               rescale=2.0,
-                                                              threshold=opts.connected_components_threshold)
+                                                              threshold=connected_components_threshold)
     print("predicted_centroids", predicted_centroids)
 
     # compare to true labels
@@ -63,4 +51,20 @@ if __name__ == "__main__":
     print("tp, fn, fp", tp, fn, fp)
 
   precision, recall, f1 = set_comparison.precision_recall_f1()
-  print("precision, recall, f1", precision, recall, f1)
+
+  return {#            "debug_img": debug_img,  # for tensorboard  TODO: readd
+            "precision": precision,
+            "recall": recall,
+            "f1": f1}
+
+if __name__ == "__main__":
+  import argparse
+  parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+  parser.add_argument('--run', type=str, required=True, help='model')
+  parser.add_argument('--image-dir', type=str, required=True)
+  parser.add_argument('--label-db', type=str, required=True)
+  parser.add_argument('--connected-components-threshold', type=float, default=0.05)
+  opts = parser.parse_args()
+  print(opts)
+
+  print(pr_stats(opts.run, opts.image_dir, opts.label_db, opts.connected_components_threshold))

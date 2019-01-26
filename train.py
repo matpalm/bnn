@@ -14,11 +14,14 @@ import util as u
 #import test
 import time
 from scipy.special import expit
+import test
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--train-image-dir', type=str, default="sample_data/training/", help="training images")
 parser.add_argument('--test-image-dir', type=str, default="sample_data/test/", help="test images")
 parser.add_argument('--label-dir', type=str, default="sample_data/labels/", help="labels for train/test")
+parser.add_argument('--label-db', type=str, default="label.201802_sample.db",
+                    help="label_db for test P/R/F1 stats")
 parser.add_argument('--patch-width-height', type=int, default=None,
                     help="what size square patches to sample. None => no patch, i.e. use full res image")
 parser.add_argument('--batch-size', type=int, default=32, help=' ')
@@ -35,6 +38,7 @@ parser.add_argument('--train-steps', type=int, default=100, help='number trainin
 parser.add_argument('--secs', type=int, default=None, help='If set, max number of seconds to run')
 parser.add_argument('--width', type=int, default=None, help='test input image width')
 parser.add_argument('--height', type=int, default=None, help='test input image height')
+parser.add_argument('--connected-components-threshold', type=float, default=0.05)
 opts = parser.parse_args()
 print("opts %s" % opts, file=sys.stderr)
 
@@ -56,6 +60,7 @@ train_imgs_xys_bitmaps = data.img_xys_iterator(image_dir=opts.train_image_dir,
 
 # TODO: need to inspect dataset to see how many images there are so (N) that we know
 #       when batch is B we should do model.evaluate(steps=N/B)
+# TODO: could do all these calcs in test.pr_stats (rather than iterating twice)
 test_imgs_xys_bitmaps = data.img_xys_iterator(image_dir=opts.test_image_dir,
                                               label_dir=opts.label_dir,
                                               batch_size=opts.batch_size,
@@ -146,22 +151,24 @@ while not done:
 #  train_summaries_writer.add_summary(debug_img_summary, step)
   train_summaries_writer.flush()
 
-  # ... test
-#  stats = tester.test(opts.run)
-#  tag_values = {k: stats[k] for k in ['precision', 'recall', 'f1']}
-  test_summaries_writer.add_summary(u.explicit_summaries({"xent": test_loss}), step)
-#  test_summaries_writer.add_summary(u.explicit_summaries(tag_values), step)
-#  debug_img_summary = u.pil_image_to_tf_summary(stats['debug_img'])
-#  test_summaries_writer.add_summary(debug_img_summary, step)
-  test_summaries_writer.flush()
-
   # save model
   dts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
   ckpt_dir = "ckpts/%s" % opts.run
   if not os.path.exists(ckpt_dir):
     os.makedirs(ckpt_dir)
   train_model.save("%s/%s" % (ckpt_dir, dts))
-#  print("!!!!!!!!!!!!!", train_model.summary())
+
+  # ... test
+  # TODO: here we are reloading model from scratch, would be quicker to use a shared layers model
+  stats = test.pr_stats(opts.run, opts.test_image_dir, opts.label_db, opts.connected_components_threshold)
+  print("STATS", stats)
+  tag_values = {k: stats[k] for k in ['precision', 'recall', 'f1']}
+  test_summaries_writer.add_summary(u.explicit_summaries({"xent": test_loss}), step)
+  test_summaries_writer.add_summary(u.explicit_summaries(tag_values), step)
+#  debug_img_summary = u.pil_image_to_tf_summary(stats['debug_img'])
+#  test_summaries_writer.add_summary(debug_img_summary, step)
+  test_summaries_writer.flush()
+
 
 #  from tensorflow.keras.models import load_model
 #  test_reload = load_model("%s/%s" % (ckpt_dir, dts),
