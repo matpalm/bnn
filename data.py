@@ -105,18 +105,7 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, disto
   assert one_shot is True  # TODO: remove one_shot use
 
   # NOTE: keras.fit wants the iterator directly (not .get_next())
-#  if one_shot:
-#    # return just output tensors from one shot, already inited, iterator
   return dataset.batch(batch_size).prefetch(1)
-#            make_one_shot_iterator())
-#            get_next())
-#  else:
-    # return output tensors _and_ init op
-#    iterator = (dataset.
-#                batch(batch_size).
-#                prefetch(1).
-#                make_initializable_iterator())
-#    return (iterator.initializer, iterator.get_next())
 
 if __name__ == "__main__":
   import argparse
@@ -134,8 +123,8 @@ if __name__ == "__main__":
                       help='relative scale of label bitmap compared to input image')
   parser.add_argument('--distort', action='store_true')
   parser.add_argument('--rotate', action='store_true')
-  parser.add_argument('--width', type=int, default=None, help='input image width. required if --patch-width-height not set.')
-  parser.add_argument('--height', type=int, default=None, help='input image height. required if --patch-width-height not set.')
+  parser.add_argument('--width', type=int, default=768, help='input image width. required if --patch-width-height not set.')
+  parser.add_argument('--height', type=int, default=1024, help='input image height. required if --patch-width-height not set.')
   opts = parser.parse_args()
   print(opts)
 
@@ -155,39 +144,11 @@ if __name__ == "__main__":
                                height=opts.height,
                                label_rescale=opts.label_rescale)
 
-  from tensorflow.keras.models import Model
-  from tensorflow.keras.layers import *
+  imgs, xyss = imgs_xyss.make_one_shot_iterator().get_next()
 
-  import kmodel
-  m = kmodel.model(width=opts.width,
-                   height=opts.height,
-                   use_skip_connections=True,
-                   base_filter_size=8)
-  print(m.summary())
-
-  m.fit(imgs_xyss, epochs=1, steps_per_epoch=16)  # 16 images in sample_data
-
-  imgs_xyss = img_xys_iterator(image_dir=opts.image_dir,
-                               label_dir=opts.label_dir,
-                               batch_size=opts.batch_size,
-                               patch_width_height=opts.patch_width_height,
-                               distort_rgb=opts.distort,
-                               flip_left_right=True,
-                               random_rotation=opts.rotate,
-                               repeat=True,
-                               width=opts.width,
-                               height=opts.height,
-                               label_rescale=opts.label_rescale)
-
-  print(m.predict(imgs_xyss))
-
-
-#  for b in range(3):
-#    img_batch, xys_batch = sess.run([imgs, xyss])
-#    print("batch shape", img_batch.shape)
-#    print("predict output shape", m.predict(img_batch).shape)
-
-#    for i, (img, xys) in enumerate(zip(img_batch, xys_batch)):
-#      fname = "test_%03d_%03d.png" % (b, i)
-#      print("batch", b, "element", i, "fname", fname)
-#      u.side_by_side(rgb=img, bitmap=xys).save(fname)
+  for b in range(3):
+    img_batch, xys_batch = sess.run([imgs, xyss])
+    for i, (img, xys) in enumerate(zip(img_batch, xys_batch)):
+      fname = "test_%03d_%03d.png" % (b, i)
+      print("batch", b, "element", i, "fname", fname)
+      u.side_by_side(rgb=img, bitmap=xys).save(fname)
