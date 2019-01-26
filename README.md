@@ -18,7 +18,7 @@ the ability to locate each bee means you can summarise with a count. note the sp
 
 ## usage
 
-see `run_sample_training_pipeline.sh` for an executable end to end walkthrough of these steps (using sample data)
+see `run_sample_training_pipeline.sh` for an executable end to end smoke test walkthrough of these steps (using sample data)
 
 ### gathering data
 
