@@ -62,7 +62,12 @@ def construct_model(width, height, base_filter_size,
 
   return Model(inputs=inputs, outputs=logits)
 
-def compile_model(model, learning_rate, pos_weight=10):
+def compile_model(model, learning_rate, pos_weight=1.0):
+  def weighted_xent(y_true, y_predicted):
+    return tf.reduce_mean(
+      tf.nn.weighted_cross_entropy_with_logits(targets=y_true,
+                                               logits=y_predicted,
+                                               pos_weight=pos_weight))
   model.compile(optimizer=tf.train.AdamOptimizer(learning_rate=learning_rate),
-                loss=u.weighted_xent)
+                loss=weighted_xent)
   return model

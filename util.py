@@ -258,9 +258,3 @@ def n_tiles(v, n=10):
 def latest_checkpoint_in_dir(ckpt_dir):
   checkpoint_info = yaml.load(open("%s/checkpoint" % ckpt_dir).read())
   return checkpoint_info['model_checkpoint_path']
-
-def weighted_xent(y_true, y_predicted):
-  return tf.reduce_mean(
-    tf.nn.weighted_cross_entropy_with_logits(targets=y_true,
-                                             logits=y_predicted,
-                                             pos_weight=10)) # TODO: REMOVE FIXED VALUE
