@@ -5,7 +5,7 @@ import argparse
 import data
 import datetime
 import json
-import kmodel      # TODO: rename back to model
+import model
 import numpy as np
 import os
 import sys
@@ -81,23 +81,23 @@ num_test_steps = num_test_files // opts.batch_size
 print("num_test_files=", num_test_files, "batch_size=", opts.batch_size, "=> num_test_steps=", num_test_steps)
 
 # training model might be patch, or full res
-train_model = kmodel.construct_model(width=opts.patch_width_height or opts.width,
-                                     height=opts.patch_width_height or opts.height,
-                                     use_skip_connections=not opts.no_use_skip_connections,
-                                     base_filter_size=opts.base_filter_size,
-                                     use_batch_norm=not opts.no_use_batch_norm)
-kmodel.compile_model(train_model,
+train_model = model.construct_model(width=opts.patch_width_height or opts.width,
+                                    height=opts.patch_width_height or opts.height,
+                                    use_skip_connections=not opts.no_use_skip_connections,
+                                    base_filter_size=opts.base_filter_size,
+                                    use_batch_norm=not opts.no_use_batch_norm)
+model.compile_model(train_model,
                      learning_rate=opts.learning_rate,
                      pos_weight=opts.pos_weight)
 print("TRAIN MODEL")
 print(train_model.summary())
 
 # always build test model in full res
-test_model =  kmodel.construct_model(width=opts.width,
-                                     height=opts.height,
-                                     use_skip_connections=not opts.no_use_skip_connections,
-                                     base_filter_size=opts.base_filter_size,
-                                     use_batch_norm=not opts.no_use_batch_norm)
+test_model =  model.construct_model(width=opts.width,
+                                    height=opts.height,
+                                    use_skip_connections=not opts.no_use_skip_connections,
+                                    base_filter_size=opts.base_filter_size,
+                                    use_batch_norm=not opts.no_use_batch_norm)
 print("TEST MODEL")
 print(test_model.summary())
 

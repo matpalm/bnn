@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw
 from label_db import LabelDB
 from scipy.special import expit
 import argparse
-import kmodel
+import model as m
 import numpy as np
 import os
 import random
@@ -22,7 +22,7 @@ parser.add_argument('--export-pngs', default='',
                     help='how, if at all, to export pngs {"", "predictions", "centroids"}')
 opts = parser.parse_args()
 
-train_opts, model =  kmodel.restore_model(opts.run)
+train_opts, model =  m.restore_model(opts.run)
 print(model.summary())
 
 if opts.output_label_db:

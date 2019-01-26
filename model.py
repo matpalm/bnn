@@ -1,132 +1,73 @@
-from __future__ import print_function
-
-import datetime
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
-import sys
-import os
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import *
 import util as u
+import json
 
-raise Exception("USE KMODEL ONLY")
+def restore_model(run):
+  # load opts used during training
+  opts = json.loads(open("ckpts/%s/opts.json" % run).read())
 
-def dump_shape_and_product_of(tag, t):
-  shape_product = 1
-  for dim in t.get_shape().as_list()[1:]:
-    shape_product *= dim
-  print("%-10s %-20s #%s" % (tag, t.get_shape(), shape_product), file=sys.stderr)
+  # NOTE: we construct this model with full width / height, not the (potential)
+  #       patch size we used for training
+  model = construct_model(width=opts['width'],
+                          height=opts['height'],
+                          use_skip_connections=not opts['no_use_skip_connections'],
+                          base_filter_size=opts['base_filter_size'],
+                          use_batch_norm=not opts['no_use_batch_norm'])
 
-class Model(object):
+  # restore weights from latest checkpoint
+  latest_ckpt = u.latest_checkpoint_in_dir("ckpts/%s" % run)
+  model.load_weights("ckpts/%s/%s" % (run, latest_ckpt))
 
-  def __init__(self, imgs, is_training, use_skip_connections,
-               base_filter_size, use_batch_norm):
+  return opts, model
 
-    with tf.variable_scope("train_test_model", reuse=tf.AUTO_REUSE) as scope:
-      self.imgs = imgs
-      model = imgs
+def construct_model(width, height, base_filter_size,
+                    use_batch_norm=True, use_skip_connections=True):
 
-      dump_shape_and_product_of('input', model)
+  def conv_bn_relu_block(i, name, filters, strides):
+    o = Conv2D(filters=filters, kernel_size=3,
+               strides=strides, padding='same')(i)
+    if use_batch_norm:
+      o = BatchNormalization()(o)
+    return ReLU()(o)
 
-      e1 = slim.conv2d(model, num_outputs=base_filter_size, kernel_size=3, stride=2, scope='e1')
-      if use_batch_norm:
-        e1 = slim.batch_norm(e1, decay=0.9, is_training=is_training)
-      dump_shape_and_product_of('e1', e1)
+  inputs = Input(shape=(height, width, 3), name='inputs')
 
-      e2 = slim.conv2d(e1, num_outputs=2*base_filter_size, kernel_size=3, stride=2, scope='e2')
-      if use_batch_norm:
-        e2 = slim.batch_norm(e2, decay=0.9, is_training=is_training)
-      dump_shape_and_product_of('e2', e2)
+  e1 = conv_bn_relu_block(inputs, 'e1', filters=base_filter_size, strides=2)
+  e2 = conv_bn_relu_block(e1, 'e2', filters=2*base_filter_size, strides=2)
+  e3 = conv_bn_relu_block(e2, 'e3', filters=4*base_filter_size, strides=2)
+  e4 = conv_bn_relu_block(e3, 'e4', filters=8*base_filter_size, strides=2)
 
-      e3 = slim.conv2d(e2, num_outputs=4*base_filter_size, kernel_size=3, stride=2, scope='e3')
-      if use_batch_norm:
-        e3 = slim.batch_norm(e3, decay=0.9, is_training=is_training)
-      dump_shape_and_product_of('e3', e3)
+  # note: using version of keras locally that doesn't support interpolation='nearest' so
+  #       unsure what resize is happening here...
 
-      e4 = slim.conv2d(e3, num_outputs=8*base_filter_size, kernel_size=3, stride=2, scope='e4')
-      if use_batch_norm:
-        e4 = slim.batch_norm(e4, decay=0.9, is_training=is_training)
-      dump_shape_and_product_of('e4', e4)
+  d1 = UpSampling2D(name='e4nn')(e4)
+  if use_skip_connections:
+    d1 = Concatenate(name='d1_e3')([d1, e3])
+  d1 = conv_bn_relu_block(d1, 'd1', filters=4*base_filter_size, strides=1)
 
-      # record bottlenecked shape for resizing back
-      # this is clumsy, how to do this more directly from tensors / config?
-      _batch_size, h, w, _depth = e4.get_shape().as_list()
+  d2 = UpSampling2D(name='d1nn')(d1)
+  if use_skip_connections:
+    d2 = Concatenate(name='d2_e2')([d2, e2])
+  d2 = conv_bn_relu_block(d2, 'd2', filters=2*base_filter_size, strides=1)
 
-      model = tf.image.resize_nearest_neighbor(e4, [h*2, w*2])
-      model = slim.conv2d(model, num_outputs=4*base_filter_size, kernel_size=3, scope='d1')
-      if use_batch_norm:
-        model = slim.batch_norm(model, decay=0.9, is_training=is_training)
-      dump_shape_and_product_of('d1', model)
+  d3 = UpSampling2D(name='d2nn')(d2)
+  if use_skip_connections:
+    d3 = Concatenate(name='d3_e1')([d3, e1])
+  d3 = conv_bn_relu_block(d3, 'd3', filters=base_filter_size, strides=1)
 
-      if use_skip_connections:
-        model = tf.concat([model, e3], axis=3)
-        dump_shape_and_product_of('d1+e3', model)
+  logits = Conv2D(filters=1, kernel_size=1, strides=1,
+                  activation=None, name='logits')(d3)
 
-      model = tf.image.resize_nearest_neighbor(model, [h*4, w*4])
-      model = slim.conv2d(model, num_outputs=2*base_filter_size, kernel_size=3, scope='d2')
-      if use_batch_norm:
-        model = slim.batch_norm(model, decay=0.9, is_training=is_training)
-      dump_shape_and_product_of('d2', model)
+  return Model(inputs=inputs, outputs=logits)
 
-      if use_skip_connections:
-        model = tf.concat([model, e2], axis=3)
-        dump_shape_and_product_of('d2+e2', model)
-
-      model = tf.image.resize_nearest_neighbor(model, [h*8, w*8])
-      model = slim.conv2d(model, num_outputs=base_filter_size, kernel_size=3, scope='d3')
-      if use_batch_norm:
-        model = slim.batch_norm(model, decay=0.9, is_training=is_training)
-      dump_shape_and_product_of('d3', model)
-
-      if use_skip_connections:
-        model = tf.concat([model, e1], axis=3)
-        dump_shape_and_product_of('d3+e1', model)
-
-      # at this point we are back to 1/2 res of original, which should be enough
-
-      # finally mapping to binary
-      self.logits = slim.conv2d(model, num_outputs=1, kernel_size=3, scope='d4',
-                                activation_fn=None)
-      dump_shape_and_product_of('logits', self.logits)
-
-      self.output = tf.nn.sigmoid(self.logits, name='output')
-
-      self.saver = tf.train.Saver(max_to_keep=100,
-                                  keep_checkpoint_every_n_hours=1)
-
-  def calculate_losses_wrt(self, labels, pos_weight=1.0):
-    self.xent_loss = tf.reduce_mean(
-      tf.nn.weighted_cross_entropy_with_logits(targets=labels,
-                                               logits=self.logits,
+def compile_model(model, learning_rate, pos_weight=1.0):
+  def weighted_xent(y_true, y_predicted):
+    return tf.reduce_mean(
+      tf.nn.weighted_cross_entropy_with_logits(targets=y_true,
+                                               logits=y_predicted,
                                                pos_weight=pos_weight))
-
-  def save(self, sess, ckpt_dir):
-    if not os.path.exists(ckpt_dir):
-      os.makedirs(ckpt_dir)
-    dts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-    new_ckpt = "%s/%s" % (ckpt_dir, dts)
-    self.saver.save(sess, new_ckpt)
-
-  def restore(self, sess, ckpt_dir, ckpt_file=None):
-    if ckpt_file is None:
-      ckpt_file = tf.train.latest_checkpoint(ckpt_dir)
-    else:
-      ckpt_file = "%s/%s" % (ckpt_dir, ckpt_file)
-    self.saver.restore(sess, ckpt_file)
-
-
-
-if __name__ == "__main__":
-  # build model just to get debug on sizes
-  import argparse
-  parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-  parser.add_argument('--width', type=int, default=768, help='input image width')
-  parser.add_argument('--height', type=int, default=1024, help='input image height')
-  parser.add_argument('--no-use-skip-connections', action='store_true')
-  parser.add_argument('--no-use-batch-norm', action='store_true')
-  parser.add_argument('--base-filter-size', type=int, default=8)
-  opts = parser.parse_args()
-
-  Model(imgs=tf.placeholder(dtype=tf.float32, shape=(1, opts.width, opts.height, 3), name='input_imgs'),
-        is_training=False,
-        use_skip_connections=not opts.no_use_skip_connections,
-        base_filter_size=opts.base_filter_size,
-        use_batch_norm=not opts.no_use_batch_norm)
+  model.compile(optimizer=tf.train.AdamOptimizer(learning_rate=learning_rate),
+                loss=weighted_xent)
+  return model
