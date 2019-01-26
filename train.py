@@ -84,6 +84,7 @@ train_model = kmodel.construct_model(width=opts.patch_width_height or opts.width
 kmodel.compile_model(train_model,
                      learning_rate=opts.learning_rate,
                      pos_weight=opts.pos_weight)
+print("TRAIN MODEL")
 print(train_model.summary())
 
 # always build test model in full res
@@ -92,6 +93,8 @@ test_model =  kmodel.construct_model(width=opts.width,
                                      use_skip_connections=not opts.no_use_skip_connections,
                                      base_filter_size=opts.base_filter_size,
                                      use_batch_norm=not opts.no_use_batch_norm)
+print("TEST MODEL")
+print(test_model.summary())
 
 # Setup summary writers. (Will create explicit summaries to write)
 # TODO: include keras default callback
@@ -101,14 +104,6 @@ test_summaries_writer = tf.summary.FileWriter("tb/%s/test" % opts.run, None)
 start_time = time.time()
 done = False
 step = 0
-
-# >>> HACK
-from PIL import Image
-test_img = np.array(Image.open("sample_data/training/20180204_145344.jpg"))
-test_img = test_img.astype(np.float32)
-test_img = (test_img / 127.5) - 1.0  # -1.0 -> 1.0  # see data.py
-print("test_img", test_img.shape)
-# <<< HACK
 
 while not done:
 
@@ -124,16 +119,6 @@ while not done:
   test_loss = train_model.evaluate(test_imgs_xys_bitmaps,
                                    steps=num_test_steps)
 
-  # >>> HACK
-  # predict on single image
-  test_prediction = train_model.predict(np.expand_dims(test_img, 0))[0]
-  print("test_pred", np.min(test_prediction), np.max(test_prediction))
-  test_prediction = expit(test_prediction)
-  print("test_pred", np.min(test_prediction), np.max(test_prediction))
-  debug_img = u.side_by_side(rgb=test_img, bitmap=test_prediction)
-  debug_img.save("debug_%05d.png" % step)
-  # <<< HACK
-
   # report one liner
   print("step %d/%d\ttime %d\ttrain_loss %f\ttest_loss %f" % (step, opts.steps,
                                                               int(time.time()-start_time),
@@ -143,9 +128,8 @@ while not done:
   # includes loss summaries as well as a hand rolled debug image
 
   # ...train
-#  i, bm, logits, o, xl = sess.run([train_imgs, train_xys_bitmaps,
-#                                   train_model.logits, train_model.output,
-#                                   train_model.xent_loss])
+  # TODO: best way to integrate debug_img for test (?)
+  #       (i.e. how to tap an element from fit())
   train_summaries_writer.add_summary(u.explicit_summaries({"xent": train_loss}), step)
 #  debug_img_summary = u.pil_image_to_tf_summary(u.debug_img(i[0], bm[0], o[0]))
 #  train_summaries_writer.add_summary(debug_img_summary, step)
@@ -165,16 +149,9 @@ while not done:
   tag_values = {k: stats[k] for k in ['precision', 'recall', 'f1']}
   test_summaries_writer.add_summary(u.explicit_summaries({"xent": test_loss}), step)
   test_summaries_writer.add_summary(u.explicit_summaries(tag_values), step)
-#  debug_img_summary = u.pil_image_to_tf_summary(stats['debug_img'])
-#  test_summaries_writer.add_summary(debug_img_summary, step)
+  debug_img_summary = u.pil_image_to_tf_summary(stats['debug_img'])
+  test_summaries_writer.add_summary(debug_img_summary, step)
   test_summaries_writer.flush()
-
-
-#  from tensorflow.keras.models import load_model
-#  test_reload = load_model("%s/%s" % (ckpt_dir, dts),
-#                           custom_objects={'weighted_xent': kmodel.weighted_xent})
-#  train_model.load("%s/%s" % (ckpt_dir, dts))
-#  print("!!!!!!!!!!!!! 2", test_reload.summary())
 
   # check if done by steps or time
   step += 1  # TODO: fetch global_step from keras model (?)

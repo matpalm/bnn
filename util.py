@@ -7,6 +7,8 @@ import os
 import sys
 import tensorflow as tf
 
+# TODO: reaudit these since slim->keras, might be some unused helpers left over...
+
 def hms(secs):
   if secs < 0:
     return "<0"  # clumsy

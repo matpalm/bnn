@@ -7,6 +7,8 @@ import sys
 import os
 import util as u
 
+raise Exception("USE KMODEL ONLY")
+
 def dump_shape_and_product_of(tag, t):
   shape_product = 1
   for dim in t.get_shape().as_list()[1:]:
