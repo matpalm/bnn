@@ -3,6 +3,25 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import *
 from tensorflow.keras import optimizers
 import util as u
+import json
+
+def restore_model(run):
+  # load opts used during training
+  opts = json.loads(open("ckpts/%s/opts.json" % run).read())
+
+  # NOTE: we construct this model with full width / height, not the (potential)
+  #       patch size we used for training
+  model = construct_model(width=opts['width'],
+                          height=opts['height'],
+                          use_skip_connections=not opts['no_use_skip_connections'],
+                          base_filter_size=opts['base_filter_size'],
+                          use_batch_norm=not opts['no_use_batch_norm'])
+
+  # restore weights from latest checkpoint
+  latest_ckpt = u.latest_checkpoint_in_dir("ckpts/%s" % run)
+  model.load_weights("ckpts/%s/%s" % (run, latest_ckpt))
+
+  return opts, model
 
 def construct_model(width, height, base_filter_size,
                     use_batch_norm=True, use_skip_connections=True):

@@ -2,6 +2,7 @@
 
 # given a directory of images output a list of image -> predictions
 
+import kmodel
 from PIL import Image, ImageDraw
 from label_db import LabelDB
 import argparse
@@ -12,6 +13,7 @@ import os
 import random
 import util as u
 from scipy.special import expit
+import json
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--image-dir', type=str, required=True)
@@ -19,19 +21,11 @@ parser.add_argument('--num', type=int, default=None,
                     help='if set run prediction for this many random images. if not set run for all')
 parser.add_argument('--output-label-db', type=str, default=None, help='if not set dont write label_db')
 parser.add_argument('--run', type=str, required=True, help='model, also used as subdir for export-pngs')
-#parser.add_argument('--no-use-skip-connections', action='store_true')
-#parser.add_argument('--no-use-batch-norm', action='store_true')
 parser.add_argument('--export-pngs', default='',
                     help='how, if at all, to export pngs {"", "predictions", "centroids"}')
-#parser.add_argument('--base-filter-size', type=int, default=8)
-parser.add_argument('--connected-components-threshold', type=float, default=0.05)
-parser.add_argument('--width', type=int, default=768, help='input image width')
-parser.add_argument('--height', type=int, default=1024, help='input image height')
 opts = parser.parse_args()
 
-latest_model = "ckpts/%s/%s" % (opts.run, u.last_file_in_dir("ckpts/%s" % opts.run))
-print("using model [%s]" % latest_model)
-model = load_model(latest_model, custom_objects={'weighted_xent': u.weighted_xent})
+train_opts, model =  kmodel.restore_model(opts.run)
 print(model.summary())
 
 if opts.output_label_db:
@@ -68,7 +62,7 @@ for idx, filename in enumerate(sorted(imgs)):
   # calc [(x,y), ...] centroids
   centroids = u.centroids_of_connected_components(prediction,
                                                   rescale=2.0,
-                                                  threshold=opts.connected_components_threshold)
+                                                  threshold=train_opts['connected_components_threshold'])
   print("\t".join(map(str, [idx, filename, len(centroids)])))
 
   # export some debug image (if requested)
