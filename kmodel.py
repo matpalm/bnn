@@ -30,10 +30,7 @@ def construct_model(width, height, base_filter_size,
                strides=strides, padding='same')(i)
     if use_batch_norm:
       o = BatchNormalization()(o)
-
-    # ReLU layer won't load via load_model (???) TODO: weird bug (??)
-    relu = Lambda(lambda x: tf.max(x, 0))
-    return LeakyReLU(alpha=0.0)(o)
+    return ReLU()(o)
 
   inputs = Input(shape=(height, width, 3), name='inputs')
 

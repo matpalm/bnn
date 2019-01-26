@@ -147,8 +147,9 @@ while not done:
   tag_values = {k: stats[k] for k in ['precision', 'recall', 'f1']}
   test_summaries_writer.add_summary(u.explicit_summaries({"xent": test_loss}), step)
   test_summaries_writer.add_summary(u.explicit_summaries(tag_values), step)
-  debug_img_summary = u.pil_image_to_tf_summary(stats['debug_img'])
-  test_summaries_writer.add_summary(debug_img_summary, step)
+  for idx, img in enumerate(stats['debug_imgs']):
+    debug_img_summary = u.pil_image_to_tf_summary(img, tag="debug_img_%d" % idx)
+    test_summaries_writer.add_summary(debug_img_summary, step)
   test_summaries_writer.flush()
 
   # report one liner

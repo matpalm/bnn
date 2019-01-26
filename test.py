@@ -20,8 +20,8 @@ def pr_stats(run, image_dir, label_db, connected_components_threshold):
 
   set_comparison = u.SetComparison()
 
-  # use first image for debug (TODO: use more)
-  debug_img = None
+  # use 4 images for debug
+  debug_imgs = []
 
   for idx, filename in enumerate(sorted(os.listdir(image_dir))):
     # load next image
@@ -33,8 +33,8 @@ def pr_stats(run, image_dir, label_db, connected_components_threshold):
     # run through model
     prediction = expit(model.predict(np.expand_dims(img, 0))[0])
 
-    if debug_img is None:
-      debug_img = u.side_by_side(rgb=img, bitmap=prediction)
+    if len(debug_imgs) < 4:
+      debug_imgs.append(u.side_by_side(rgb=img, bitmap=prediction))
 
     # calc [(x,y), ...] centroids
     predicted_centroids = u.centroids_of_connected_components(prediction,
@@ -48,7 +48,7 @@ def pr_stats(run, image_dir, label_db, connected_components_threshold):
 
   precision, recall, f1 = set_comparison.precision_recall_f1()
 
-  return {"debug_img": debug_img,
+  return {"debug_imgs": debug_imgs,
           "precision": precision,
           "recall": recall,
           "f1": f1}
