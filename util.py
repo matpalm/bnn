@@ -8,8 +8,6 @@ import yaml
 import sys
 import tensorflow as tf
 
-# TODO: reaudit these since slim->keras, might be some unused helpers left over...
-
 def hms(secs):
   if secs < 0:
     return "<0"  # clumsy
@@ -77,18 +75,17 @@ def pil_image_to_tf_summary(img, tag="debug_img"):
                                                                    colorspace=3, # RGB
                                                                    encoded_image_string=png_bytes))])
 
-def dice_loss(y, y_hat, batch_size, smoothing=0):
-  # note: not currently used anywhere...
-  y = tf.reshape(y, (batch_size, -1))
-  y_hat = tf.reshape(y_hat, (batch_size, -1))
-  intersection = y * y_hat
-  intersection_rs = tf.reduce_sum(intersection, axis=1)
-  nom = intersection_rs + smoothing
-  denom = tf.reduce_sum(y, axis=1) + tf.reduce_sum(y_hat, axis=1) + smoothing
-  score = 2.0 * (nom / denom)
-  loss = 1.0 - score
+#def dice_loss(y, y_hat, batch_size, smoothing=0):
+#  y = tf.reshape(y, (batch_size, -1))
+#  y_hat = tf.reshape(y_hat, (batch_size, -1))
+#  intersection = y * y_hat
+#  intersection_rs = tf.reduce_sum(intersection, axis=1)
+#  nom = intersection_rs + smoothing
+#  denom = tf.reduce_sum(y, axis=1) + tf.reduce_sum(y_hat, axis=1) + smoothing
+#  score = 2.0 * (nom / denom)
+#  loss = 1.0 - score
 #  loss = tf.Print(loss, [intersection, intersection_rs, nom, denom], first_n=100, summarize=10000)
-  return loss
+#  return loss
 
 def centroids_of_connected_components(bitmap, threshold=0.05, rescale=1.0):
   # TODO: don't do raw (binary) threshold; instead use P(y) as weighting for centroid
@@ -234,8 +231,6 @@ def check_images(fnames):
     except IOError as e:
       print("Image is corrupted or does not exist:", fname)
       raise e
-      # sys.exit()
-
     width, height = im.size
     if i == 0:
       prev_width = width
@@ -245,15 +240,15 @@ def check_images(fnames):
       exit()
   return width, height
 
-def shuffled_endless_generator(l):
-  l_copy = l.copy()
-  while True:
-    random.shuffle(l_copy)
-    for element in l_copy:
-      yield element
+#def shuffled_endless_generator(l):
+#  l_copy = l.copy()
+#  while True:
+#    random.shuffle(l_copy)
+#    for element in l_copy:
+#      yield element
 
-def n_tiles(v, n=10):
-  return np.percentile(v, np.linspace(0, 100, n+1))
+#def n_tiles(v, n=10):
+#  return np.percentile(v, np.linspace(0, 100, n+1))
 
 def latest_checkpoint_in_dir(ckpt_dir):
   checkpoint_info = yaml.load(open("%s/checkpoint" % ckpt_dir).read())

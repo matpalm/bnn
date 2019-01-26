@@ -63,9 +63,7 @@ train_imgs_xys_bitmaps = data.img_xys_iterator(image_dir=opts.train_image_dir,
                                                repeat=True,
                                                width=opts.width, height=opts.height)
 
-# TODO: need to inspect dataset to see how many images there are so (N) that we know
-#       when batch is B we should do model.evaluate(steps=N/B)
-# TODO: could do all these calcs in test.pr_stats (rather than iterating twice)
+# TODO: could we do all these calcs in test.pr_stats (rather than iterating twice) ??
 test_imgs_xys_bitmaps = data.img_xys_iterator(image_dir=opts.test_image_dir,
                                               label_dir=opts.label_dir,
                                               batch_size=opts.batch_size,
@@ -129,8 +127,6 @@ while not done:
   # includes loss summaries as well as a hand rolled debug image
 
   # ...train
-  # TODO: best way to integrate debug_img for test (?)
-  #       (i.e. how to tap an element from fit())
   train_summaries_writer.add_summary(u.explicit_summaries({"xent": train_loss}), step)
 #  debug_img_summary = u.pil_image_to_tf_summary(u.debug_img(i[0], bm[0], o[0]))
 #  train_summaries_writer.add_summary(debug_img_summary, step)
@@ -142,7 +138,6 @@ while not done:
   train_model.save_weights(save_filename)
 
   # ... test
-  # TODO: here we are reloading model from scratch, would be quicker to use a shared layers model
   stats = test.pr_stats(opts.run, opts.test_image_dir, opts.label_db, opts.connected_components_threshold)
   tag_values = {k: stats[k] for k in ['precision', 'recall', 'f1']}
   test_summaries_writer.add_summary(u.explicit_summaries({"xent": test_loss}), step)
