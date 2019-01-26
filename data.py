@@ -10,10 +10,8 @@ import random
 import tensorflow as tf
 import util as u
 
-# TODO: remove one_shot; the way we handle iterators with keras.fit is different
-
 def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, distort_rgb,
-                     flip_left_right, random_rotation, repeat, width, height, one_shot=True,
+                     flip_left_right, random_rotation, repeat, width, height,
                      label_rescale=0.5):
   # return dataset of (image, xys_bitmap) for training
 
@@ -101,8 +99,6 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, disto
 
   if flip_left_right or distort_rgb or random_rotation:
     dataset = dataset.map(augment, num_parallel_calls=8)
-
-  assert one_shot is True  # TODO: remove one_shot use
 
   # NOTE: keras.fit wants the iterator directly (not .get_next())
   return dataset.batch(batch_size).prefetch(1)
