@@ -90,6 +90,9 @@ def pil_image_to_tf_summary(img, tag="debug_img"):
 def centroids_of_connected_components(bitmap, threshold=0.05, rescale=1.0):
   # TODO: don't do raw (binary) threshold; instead use P(y) as weighting for centroid
   #       e.g. https://arxiv.org/abs/1806.03413 sec 3.D
+  #       update: this didn't help much :/ centroid weighted by intensities moved only up
+  #       to a single pixel (guess centroids are already quite evenly dispersed)
+  #       see https://gist.github.com/matpalm/20a3974ceb7f632f935285262fac4e98
   # TODO: hunt down the x/y swap between PIL and label db :/
 
   # threshold
@@ -98,10 +101,9 @@ def centroids_of_connected_components(bitmap, threshold=0.05, rescale=1.0):
   bitmap[mask] = 1.0
   # calc connected components
   all_labels = measure.label(bitmap)
-  num_components = np.max(all_labels) + 1
   # return centroids
   centroids = []
-  for region in measure.regionprops(all_labels):
+  for region in measure.regionprops(label_image=all_labels):
     cx, cy = map(lambda p: int(p*rescale), region.centroid)
     centroids.append((cx, cy))
   return centroids
