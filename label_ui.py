@@ -141,9 +141,8 @@ class LabelUI():
   def _flush_pending_x_y_to_boxes(self):
     # Flush existing points.
     img_name = self.files[self.file_idx]
-    if len(self.x_y_to_boxes) > 0:
-      self.label_db.set_labels(img_name, self.x_y_to_boxes.keys())
-      self.x_y_to_boxes.clear()
+    self.label_db.set_labels(img_name, self.x_y_to_boxes.keys())
+    self.x_y_to_boxes.clear()
 
   def display_new_image(self):
     img_name = self.files[self.file_idx]
