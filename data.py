@@ -133,7 +133,7 @@ if __name__ == "__main__":
                                batch_size=opts.batch_size,
                                patch_width_height=opts.patch_width_height,
                                distort_rgb=opts.distort,
-                               flip_left_right=True,
+                               flip_left_right=opts.distort,
                                random_rotation=opts.rotate,
                                repeat=True,
                                width=opts.width,
