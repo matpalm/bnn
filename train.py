@@ -36,8 +36,10 @@ parser.add_argument('--random-rotate', action='store_true', help='randomly rotat
 parser.add_argument('--steps', type=int, default=100000, help='max number of training steps (summaries every --train-steps)')
 parser.add_argument('--train-steps', type=int, default=100, help='number training steps between test and summaries')
 parser.add_argument('--secs', type=int, default=None, help='If set, max number of seconds to run')
-parser.add_argument('--width', type=int, default=None, help='test input image width')
-parser.add_argument('--height', type=int, default=None, help='test input image height')
+parser.add_argument('--width', type=int, default=768,
+                    help='test image width (assumed training image width if --patch-width-height not set)')
+parser.add_argument('--height', type=int, default=1024,
+                    help='test image height (assumed training height if --patch-width-height not set)')
 parser.add_argument('--connected-components-threshold', type=float, default=0.05)
 opts = parser.parse_args()
 print("opts %s" % opts, file=sys.stderr)
@@ -53,6 +55,7 @@ with open("%s/opts.json" % ckpt_dir, "w") as f:
 #tf.keras.backend.set_session(tf_debug.LocalCLIDebugWrapperSession(tf.Session()))
 
 # Build readers / model for training
+# training can be either patch based, or full resolution
 train_imgs_xys_bitmaps = data.img_xys_iterator(image_dir=opts.train_image_dir,
                                                label_dir=opts.label_dir,
                                                batch_size=opts.batch_size,
@@ -61,9 +64,11 @@ train_imgs_xys_bitmaps = data.img_xys_iterator(image_dir=opts.train_image_dir,
                                                flip_left_right=opts.flip_left_right,
                                                random_rotation=opts.random_rotate,
                                                repeat=True,
-                                               width=opts.width, height=opts.height)
+                                               width=None if opts.patch_width_height else opts.width,
+                                               height=None if opts.patch_width_height else opts.height)
 
 # TODO: could we do all these calcs in test.pr_stats (rather than iterating twice) ??
+# test images are always full res
 test_imgs_xys_bitmaps = data.img_xys_iterator(image_dir=opts.test_image_dir,
                                               label_dir=opts.label_dir,
                                               batch_size=opts.batch_size,
@@ -78,19 +83,19 @@ num_test_files = len(os.listdir(opts.test_image_dir))
 num_test_steps = num_test_files // opts.batch_size
 print("num_test_files=", num_test_files, "batch_size=", opts.batch_size, "=> num_test_steps=", num_test_steps)
 
-# training model might be patch, or full res
+# training model.
 train_model = model.construct_model(width=opts.patch_width_height or opts.width,
                                     height=opts.patch_width_height or opts.height,
                                     use_skip_connections=not opts.no_use_skip_connections,
                                     base_filter_size=opts.base_filter_size,
                                     use_batch_norm=not opts.no_use_batch_norm)
 model.compile_model(train_model,
-                     learning_rate=opts.learning_rate,
-                     pos_weight=opts.pos_weight)
+                    learning_rate=opts.learning_rate,
+                    pos_weight=opts.pos_weight)
 print("TRAIN MODEL")
 print(train_model.summary())
 
-# always build test model in full res
+# test model.
 test_model =  model.construct_model(width=opts.width,
                                     height=opts.height,
                                     use_skip_connections=not opts.no_use_skip_connections,

@@ -15,6 +15,18 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, disto
                      label_rescale=0.5):
   # return dataset of (image, xys_bitmap) for training
 
+  # give super explicit exception re: setting patch_width_height and width, height
+  width_height_set = False
+  if width is not None or height is not None:
+    if width is None or height is None:
+      raise Exception("when setting --width or --height must set both")
+    width_height_set = True
+  patch_set = patch_width_height is not None
+  if patch_set and width_height_set:
+    raise Exception("need to set either --patch-width-height or --width and --height, not both")
+  if not (patch_set or width_height_set):
+    raise Exception("need to set one of either --patch-width-height or both --width and --height")
+
   # materialise list of rgb filenames and corresponding numpy bitmaps
   rgb_filenames = []     # (H, W, 3) jpgs
   bitmap_filenames = []  # (H/2, W/2, 1) pngs
@@ -119,8 +131,10 @@ if __name__ == "__main__":
                       help='relative scale of label bitmap compared to input image')
   parser.add_argument('--distort', action='store_true')
   parser.add_argument('--rotate', action='store_true')
-  parser.add_argument('--width', type=int, default=768, help='input image width. required if --patch-width-height not set.')
-  parser.add_argument('--height', type=int, default=1024, help='input image height. required if --patch-width-height not set.')
+  parser.add_argument('--width', type=int, default=768,
+                      help='input image width. required if --patch-width-height not set.')
+  parser.add_argument('--height', type=int, default=1024,
+                      help='input image height. required if --patch-width-height not set.')
   opts = parser.parse_args()
   print(opts)
 
@@ -136,8 +150,8 @@ if __name__ == "__main__":
                                flip_left_right=opts.distort,
                                random_rotation=opts.rotate,
                                repeat=True,
-                               width=opts.width,
-                               height=opts.height,
+                               width=None if opts.patch_width_height else opts.width,
+                               height=None if opts.patch_width_height else opts.height,
                                label_rescale=opts.label_rescale)
 
   imgs, xyss = imgs_xyss.make_one_shot_iterator().get_next()
