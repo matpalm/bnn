@@ -4,9 +4,9 @@ import io
 import math
 import numpy as np
 import os
-import yaml
 import sys
 import tensorflow as tf
+import yaml
 
 def hms(secs):
   if secs < 0:
@@ -241,16 +241,6 @@ def check_images(fnames):
       print("Image size does not match others:", fname, "wh:", width, height)
       exit()
   return width, height
-
-#def shuffled_endless_generator(l):
-#  l_copy = l.copy()
-#  while True:
-#    random.shuffle(l_copy)
-#    for element in l_copy:
-#      yield element
-
-#def n_tiles(v, n=10):
-#  return np.percentile(v, np.linspace(0, 100, n+1))
 
 def latest_checkpoint_in_dir(ckpt_dir):
   checkpoint_info = yaml.load(open("%s/checkpoint" % ckpt_dir).read())

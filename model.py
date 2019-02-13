@@ -26,10 +26,20 @@ def construct_model(width, height, base_filter_size,
                     use_batch_norm=True, use_skip_connections=True):
 
   def conv_bn_relu_block(i, name, filters, strides):
+
+    # TODO: try this as more theoretically correct approach
+#    o = Conv2D(filters=filters, kernel_size=3,
+#               strides=strides, padding='same',
+#               use_bias=(not use_batch_norm))(i)
+#    if use_batch_norm:
+#      o = BatchNormalization(scale=False)(o)
+
     o = Conv2D(filters=filters, kernel_size=3,
                strides=strides, padding='same')(i)
     if use_batch_norm:
       o = BatchNormalization()(o)
+
+    # TODO: try BN after relu
     return ReLU()(o)
 
   inputs = Input(shape=(height, width, 3), name='inputs')

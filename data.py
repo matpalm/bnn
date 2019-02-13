@@ -101,7 +101,7 @@ def img_xys_iterator(image_dir, label_dir, batch_size, patch_width_height, disto
     dataset = dataset.map(augment, num_parallel_calls=8)
 
   # NOTE: keras.fit wants the iterator directly (not .get_next())
-  return dataset.batch(batch_size).prefetch(1)
+  return dataset.batch(batch_size).prefetch(tf.contrib.data.AUTOTUNE)
 
 if __name__ == "__main__":
   import argparse

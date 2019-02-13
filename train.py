@@ -14,6 +14,8 @@ import test
 import time
 import util as u
 
+np.set_printoptions(precision=2, threshold=10000, suppress=True, linewidth=10000)
+
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--train-image-dir', type=str, default="sample_data/training/", help="training images")
 parser.add_argument('--test-image-dir', type=str, default="sample_data/test/", help="test images")
@@ -47,8 +49,6 @@ if not os.path.exists(ckpt_dir):
 with open("%s/opts.json" % ckpt_dir, "w") as f:
   f.write(json.dumps(vars(opts)))
 
-np.set_printoptions(precision=2, threshold=10000, suppress=True, linewidth=10000)
-
 #from tensorflow.python import debug as tf_debug
 #tf.keras.backend.set_session(tf_debug.LocalCLIDebugWrapperSession(tf.Session()))
 
@@ -67,7 +67,7 @@ train_imgs_xys_bitmaps = data.img_xys_iterator(image_dir=opts.train_image_dir,
 test_imgs_xys_bitmaps = data.img_xys_iterator(image_dir=opts.test_image_dir,
                                               label_dir=opts.label_dir,
                                               batch_size=opts.batch_size,
-                                              patch_width_height=opts.patch_width_height,
+                                              patch_width_height=None,
                                               distort_rgb=False,
                                               flip_left_right=False,
                                               random_rotation=False,
@@ -96,6 +96,9 @@ test_model =  model.construct_model(width=opts.width,
                                     use_skip_connections=not opts.no_use_skip_connections,
                                     base_filter_size=opts.base_filter_size,
                                     use_batch_norm=not opts.no_use_batch_norm)
+model.compile_model(test_model,
+                    learning_rate=opts.learning_rate,
+                    pos_weight=opts.pos_weight)
 print("TEST MODEL")
 print(test_model.summary())
 
@@ -119,9 +122,9 @@ while not done:
   # do eval using test model
   # TODO: switch to sharing layers between these two over this explicit get/set_weights
   test_model.set_weights(train_model.get_weights())
-  test_loss = train_model.evaluate(test_imgs_xys_bitmaps,
-                                   verbose=1,
-                                   steps=num_test_steps)
+  test_loss = test_model.evaluate(test_imgs_xys_bitmaps,
+                                  verbose=1,
+                                  steps=num_test_steps)
 
   # train / test summaries
   # includes loss summaries as well as a hand rolled debug image
