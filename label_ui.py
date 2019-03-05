@@ -148,7 +148,7 @@ class LabelUI():
     img_name = self.files[self.file_idx]
     # Display image (with filename added)
     title = img_name + " " + str(self.file_idx) + " of " + str(len(self.files)-1)
-    img = Image.open(self.img_dir + "/" + img_name)
+    img = Image.open(self.img_dir + "/" + img_name).convert("RGBA")
     canvas = ImageDraw.Draw(img)
     canvas.text((0,0), title, fill='black')
     self.tk_img = ImageTk.PhotoImage(img)
