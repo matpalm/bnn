@@ -22,11 +22,11 @@ see `run_sample_training_pipeline.sh` for an executable end to end smoke test wa
 
 ### dependencies
 
-code depends on (at least) TODO: requirements.txt
+code depends in `requirements.txt`
 
 ```
 sudo apt-get install python3-tk python3-pil python3-pil.imagetk
-sudo pip3 install tensorflow-gpu scikit-image sklearn
+sudo pip3 install -r requirements.txt
 ```
 
 ### gathering data
