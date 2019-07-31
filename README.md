@@ -142,9 +142,8 @@ precision 0.936  recall 0.797  f1 0.861
 ### running on compute stick
 
 after loads of hacking i did eventually get this running on the compute stick.
-
 some info is included in [this issue](https://github.com/matpalm/bnn/issues/8)
-with additional background info in [this forum post](https://ncsforum.movidius.com/discussion/692/incorrect-inference-results-from-a-minimal-tensorflow-model#latest) for more info... )
+with additional background info in [this forum post](https://ncsforum.movidius.com/discussion/692/incorrect-inference-results-from-a-minimal-tensorflow-model#latest)
 
 [update] given how long ago this was, i'm hoping things are easier these days :D
 
