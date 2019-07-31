@@ -1,5 +1,8 @@
+#!/usr/bin/env python3
+
 import sqlite3
 import json
+import sys
 
 class LabelDB(object):
   def __init__(self, label_db_file='label.db', check_same_thread=True):
@@ -84,11 +87,20 @@ class LabelDB(object):
       c.execute("insert into labels (img_id, x, y) values (?, ?, ?)", (img_id, x, y,))
     self.conn.commit()
 
+  def clean_db(self):
+    c = self.conn.cursor()
+    c.execute("delete from labels")
+    c.execute("delete from imgs")
+    self.conn.commit()
 
 if __name__ == "__main__":
   import argparse
   parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
   parser.add_argument('--label-db', type=str, default="label.db")
+  parser.add_argument('--clean-db', type=str, default="label.db")
   opts = parser.parse_args()
   db = LabelDB(label_db_file=opts.label_db)
+  db.create_if_required()
+  if(sys.argv[1] == '--clean-db'):
+    db.clean_db()
   print("\n".join(db.imgs()))
